@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku.com - Jeu de Sudoku Gratuit en Ligne</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Barre de navigation supérieure -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <div class="brand">
+                <div class="brand-logo" aria-hidden="true">
+                    <span>9</span><span></span><span>4</span>
+                    <span></span><span>5</span><span></span>
+                    <span>1</span><span></span><span>8</span>
+                </div>
+                <span class="brand-title">Sudoku<span class="brand-dot">.com</span></span>
+            </div>
+
+            <div class="navbar-actions">
+                <button id="btn-stats" class="nav-icon-btn" title="Statistiques">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10M12 20V4M6 20v-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="nav-btn-label">Statistiques</span>
+                </button>
+
+                <div class="theme-switcher" role="group" aria-label="Thème visuel">
+                    <button class="theme-btn active" data-theme-target="light" title="Thème Clair">☀️</button>
+                    <button class="theme-btn" data-theme-target="sepia" title="Thème Sépia">📜</button>
+                    <button class="theme-btn" data-theme-target="dark" title="Thème Sombre">🌙</button>
+                </div>
+
+                <button id="btn-settings" class="nav-icon-btn" title="Paramètres">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenu principal -->
+    <main class="main-container">
+        <!-- Sélecteur de difficulté façon Sudoku.com -->
+        <section class="top-bar">
+            <div class="difficulty-selector" role="tablist" aria-label="Niveau de difficulté">
+                <span class="difficulty-label">Difficulté :</span>
+                <button class="diff-tab active" data-difficulty="easy">Facile</button>
+                <button class="diff-tab" data-difficulty="medium">Moyen</button>
+                <button class="diff-tab" data-difficulty="hard">Difficile</button>
+                <button class="diff-tab" data-difficulty="expert">Expert</button>
+                <button class="diff-tab" data-difficulty="master">Maître</button>
+                <button class="diff-tab" data-difficulty="extreme">Extrême</button>
+            </div>
+
+            <div class="game-info-bar">
+                <div class="info-item" id="mistakes-container">
+                    <span class="info-label">Erreurs</span>
+                    <span class="info-value" id="mistakes-display">0/3</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Score</span>
+                    <span class="info-value" id="score-display">0</span>
+                </div>
+                <div class="info-item timer-item">
+                    <span class="info-label">Temps</span>
+                    <span class="info-value" id="timer-display">00:00</span>
+                    <button id="btn-pause" class="pause-icon-btn" title="Mettre en pause (P)">
+                        <svg id="icon-pause" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                            <rect x="6" y="4" width="4" height="16" rx="1"/>
+                            <rect x="14" y="4" width="4" height="16" rx="1"/>
+                        </svg>
+                        <svg id="icon-play" class="hidden" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Zone de jeu : Grille + Panneau de contrôle -->
+        <section class="game-workspace">
+            <!-- Colonne gauche : Grille 9x9 -->
+            <div class="board-wrapper">
+                <div id="sudoku-board" class="sudoku-board" role="grid" aria-label="Grille de Sudoku 9 par 9" tabindex="0">
+                    <!-- Généré dynamiquement par app.js -->
+                </div>
+
+                <!-- Écran de pause par-dessus la grille -->
+                <div id="pause-overlay" class="pause-overlay hidden">
+                    <div class="pause-card">
+                        <h3>Jeu en pause</h3>
+                        <p id="pause-stats-summary">Difficulté : Facile • Temps : 00:00</p>
+                        <button id="btn-resume-overlay" class="primary-btn">
+                            Reprendre la partie
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bannière d'indice intelligent -->
+                <div id="hint-banner" class="hint-banner hidden" role="status">
+                    <div class="hint-banner-content">
+                        <strong id="hint-technique">Indice intelligent</strong>
+                        <p id="hint-explanation"></p>
+                    </div>
+                    <button id="btn-close-hint" class="hint-close-btn" title="Fermer">&times;</button>
+                </div>
+            </div>
+
+            <!-- Colonne droite : Contrôles & Pavé numérique -->
+            <aside class="controls-panel">
+                <button id="btn-new-game" class="new-game-btn">
+                    Nouvelle partie
+                </button>
+
+                <!-- 4 boutons d'action façon Sudoku.com -->
+                <div class="action-buttons">
+                    <button id="btn-undo" class="action-btn" title="Annuler (Ctrl+Z ou U)">
+                        <div class="action-icon-circle">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 7v6h6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <span class="action-label">Annuler</span>
+                    </button>
+
+                    <button id="btn-erase" class="action-btn" title="Gomme (Suppr ou Retour arrière)">
+                        <div class="action-icon-circle">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M22 21H7" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="m5 11 9 9" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <span class="action-label">Gomme</span>
+                    </button>
+
+                    <button id="btn-notes" class="action-btn" title="Mode Notes / Crayon (Touche N)">
+                        <div class="action-icon-circle">
+                            <span id="notes-badge" class="status-badge off">OFF</span>
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="m15 5 4 4" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <span class="action-label">Notes</span>
+                    </button>
+
+                    <button id="btn-hint" class="action-btn" title="Indice intelligent (Touche H)">
+                        <div class="action-icon-circle">
+                            <span id="hints-badge" class="status-badge count">3</span>
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M9 18h6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M10 22h4" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <span class="action-label">Indice</span>
+                    </button>
+                </div>
+
+                <!-- Outils rapides secondaires : Notes Auto & Mode Saisie Rapide -->
+                <div class="quick-tools-bar">
+                    <button id="btn-auto-notes" class="quick-tool-btn" title="Remplir automatiquement tous les candidats possibles">
+                        ✨ Notes auto
+                    </button>
+                    <button id="btn-fast-mode" class="quick-tool-btn" title="Verrouiller un chiffre pour remplir plusieurs cases à la suite">
+                        ⚡ Chiffre d'abord : <span id="fast-mode-state">OFF</span>
+                    </button>
+                </div>
+
+                <!-- Pavé numérique 1 à 9 -->
+                <div id="numpad" class="numpad" role="group" aria-label="Pavé numérique 1 à 9">
+                    <button class="numpad-btn" data-num="1"><span class="num-digit">1</span><span class="num-remaining" id="rem-1">9</span></button>
+                    <button class="numpad-btn" data-num="2"><span class="num-digit">2</span><span class="num-remaining" id="rem-2">9</span></button>
+                    <button class="numpad-btn" data-num="3"><span class="num-digit">3</span><span class="num-remaining" id="rem-3">9</span></button>
+                    <button class="numpad-btn" data-num="4"><span class="num-digit">4</span><span class="num-remaining" id="rem-4">9</span></button>
+                    <button class="numpad-btn" data-num="5"><span class="num-digit">5</span><span class="num-remaining" id="rem-5">9</span></button>
+                    <button class="numpad-btn" data-num="6"><span class="num-digit">6</span><span class="num-remaining" id="rem-6">9</span></button>
+                    <button class="numpad-btn" data-num="7"><span class="num-digit">7</span><span class="num-remaining" id="rem-7">9</span></button>
+                    <button class="numpad-btn" data-num="8"><span class="num-digit">8</span><span class="num-remaining" id="rem-8">9</span></button>
+                    <button class="numpad-btn" data-num="9"><span class="num-digit">9</span><span class="num-remaining" id="rem-9">9</span></button>
+                </div>
+
+                <!-- Aide raccourcis clavier -->
+                <div class="keyboard-shortcuts-hint">
+                    <span>Clavier : <strong>1-9</strong> Chiffres • <strong>N</strong> Notes • <strong>H</strong> Indice • <strong>Suppr</strong> Gomme • <strong>Flèches</strong> Déplacement</span>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <!-- MODAL : Nouvelle Partie -->
+    <div id="modal-new-game" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Nouvelle partie</h2>
+                <button class="modal-close" data-close-modal="modal-new-game">&times;</button>
+            </div>
+            <p class="modal-subtitle">Sélectionnez un niveau de difficulté pour commencer :</p>
+            <div class="difficulty-modal-list">
+                <button class="diff-modal-btn" data-start-diff="easy">
+                    <span>Facile</span>
+                    <small>Idéal pour débuter</small>
+                </button>
+                <button class="diff-modal-btn" data-start-diff="medium">
+                    <span>Moyen</span>
+                    <small>Logique standard</small>
+                </button>
+                <button class="diff-modal-btn" data-start-diff="hard">
+                    <span>Difficile</span>
+                    <small>Pour joueurs réguliers</small>
+                </button>
+                <button class="diff-modal-btn" data-start-diff="expert">
+                    <span>Expert</span>
+                    <small>Techniques avancées</small>
+                </button>
+                <button class="diff-modal-btn" data-start-diff="master">
+                    <span>Maître</span>
+                    <small>Défi de haut niveau</small>
+                </button>
+                <button class="diff-modal-btn" data-start-diff="extreme">
+                    <span>Extrême</span>
+                    <small>Complexité maximale</small>
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-restart-current" class="secondary-btn">Recommencer cette grille à zéro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : Partie terminée (3 Erreurs) -->
+    <div id="modal-game-over" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card center-text">
+            <div class="modal-icon error-icon">⚠️</div>
+            <h2>Partie terminée</h2>
+            <p class="modal-subtitle">Vous avez commis 3 erreurs dans cette partie.</p>
+            <div class="modal-actions-stack">
+                <button id="btn-second-chance" class="primary-btn">Seconde chance (Continuer)</button>
+                <button id="btn-gameover-new" class="secondary-btn">Nouvelle partie</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : Victoire -->
+    <div id="modal-victory" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card center-text">
+            <div class="modal-icon trophy-icon">🏆</div>
+            <h2>Félicitations !</h2>
+            <p class="modal-subtitle" id="victory-record-badge">Vous avez résolu la grille avec succès !</p>
+
+            <div class="victory-stats-grid">
+                <div class="v-stat">
+                    <span class="v-stat-label">Difficulté</span>
+                    <strong class="v-stat-val" id="vic-diff">Facile</strong>
+                </div>
+                <div class="v-stat">
+                    <span class="v-stat-label">Score final</span>
+                    <strong class="v-stat-val" id="vic-score">1 250</strong>
+                </div>
+                <div class="v-stat">
+                    <span class="v-stat-label">Temps</span>
+                    <strong class="v-stat-val" id="vic-time">03:42</strong>
+                </div>
+                <div class="v-stat">
+                    <span class="v-stat-label">Erreurs</span>
+                    <strong class="v-stat-val" id="vic-mistakes">0</strong>
+                </div>
+            </div>
+
+            <div class="modal-actions-stack">
+                <button id="btn-victory-new" class="primary-btn">Jouer une nouvelle partie</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : Statistiques -->
+    <div id="modal-stats" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card modal-wide">
+            <div class="modal-header">
+                <h2>Statistiques personnelles</h2>
+                <button class="modal-close" data-close-modal="modal-stats">&times;</button>
+            </div>
+
+            <div class="stats-diff-tabs" id="stats-diff-tabs">
+                <button class="stats-tab active" data-stat-diff="easy">Facile</button>
+                <button class="stats-tab" data-stat-diff="medium">Moyen</button>
+                <button class="stats-tab" data-stat-diff="hard">Difficile</button>
+                <button class="stats-tab" data-stat-diff="expert">Expert</button>
+                <button class="stats-tab" data-stat-diff="master">Maître</button>
+                <button class="stats-tab" data-stat-diff="extreme">Extrême</button>
+            </div>
+
+            <div class="stats-cards-grid">
+                <div class="stat-box">
+                    <span class="stat-box-val" id="st-played">0</span>
+                    <span class="stat-box-label">Parties commencées</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-box-val" id="st-won">0</span>
+                    <span class="stat-box-label">Parties gagnées</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-box-val" id="st-winrate">0%</span>
+                    <span class="stat-box-label">Taux de réussite</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-box-val" id="st-flawless">0</span>
+                    <span class="stat-box-label">Victoires sans erreur</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-box-val" id="st-best-time">--:--</span>
+                    <span class="stat-box-label">Meilleur temps</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-box-val" id="st-best-score">0</span>
+                    <span class="stat-box-label">Meilleur score</span>
+                </div>
+            </div>
+
+            <div class="modal-footer between">
+                <button id="btn-reset-stats" class="danger-link-btn">Réinitialiser les statistiques</button>
+                <button class="secondary-btn" data-close-modal="modal-stats">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : Paramètres -->
+    <div id="modal-settings" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Paramètres de jeu</h2>
+                <button class="modal-close" data-close-modal="modal-settings">&times;</button>
+            </div>
+
+            <div class="settings-list">
+                <label class="setting-row">
+                    <div class="setting-text">
+                        <strong>Limite d'erreurs (3 erreurs max)</strong>
+                        <small>Active la fin de partie au bout de 3 erreurs</small>
+                    </div>
+                    <input type="checkbox" id="set-mistake-limit" checked>
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
+                        <strong>Vérification auto des erreurs</strong>
+                        <small>Signale immédiatement les chiffres qui ne correspondent pas à la solution</small>
+                    </div>
+                    <input type="checkbox" id="set-auto-check" checked>
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
+                        <strong>Surligner les doublons</strong>
+                        <small>Met en rouge les chiffres identiques dans la même ligne, colonne ou bloc</small>
+                    </div>
+                    <input type="checkbox" id="set-highlight-duplicates" checked>
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
+                        <strong>Surligner les chiffres identiques</strong>
+                        <small>Met en évidence toutes les occurrences du chiffre sélectionné</small>
+                    </div>
+                    <input type="checkbox" id="set-highlight-identical" checked>
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
+                        <strong>Suppression auto des notes</strong>
+                        <small>Retire automatiquement les notes obsolètes lorsqu'un chiffre est placé</small>
+                    </div>
+                    <input type="checkbox" id="set-auto-remove-notes" checked>
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
+                        <strong>Masquer les chiffres utilisés</strong>
+                        <small>Grise les boutons du pavé numérique lorsque les 9 exemplaires sont placés</small>
+                    </div>
+                    <input type="checkbox" id="set-hide-used-numbers" checked>
+                </label>
+            </div>
+
+            <div class="modal-footer">
+                <button class="primary-btn" data-close-modal="modal-settings">Terminé</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="sudoku-engine.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
