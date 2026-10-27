@@ -40,6 +40,11 @@
             </div>
 
             <div class="navbar-actions">
+                <button id="btn-profile" class="nav-icon-btn profile-nav-btn" title="Profil & Sauvegarde Cloud">
+                    <span id="nav-profile-avatar" class="nav-avatar-emoji">🧠</span>
+                    <span id="nav-profile-name" class="nav-btn-label">Profil</span>
+                </button>
+
                 <button id="btn-stats" class="nav-icon-btn" title="Statistiques">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 20V10M12 20V4M6 20v-6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -372,6 +377,119 @@
             <div class="modal-footer between">
                 <button id="btn-reset-stats" class="danger-link-btn">Réinitialiser les statistiques</button>
                 <button class="secondary-btn" data-close-modal="modal-stats">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : Profil & Synchronisation Cloud par Code Unique -->
+    <div id="modal-profile" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card modal-settings-card">
+            <div class="sheet-handle" aria-hidden="true"></div>
+            <div class="modal-header">
+                <h2>Profil &amp; Sauvegarde Cloud</h2>
+                <button class="modal-close" data-close-modal="modal-profile" aria-label="Fermer">&times;</button>
+            </div>
+
+            <div class="modal-body-scroll">
+                <!-- Carte Identité & Rang -->
+                <div class="profile-hero-card">
+                    <div class="profile-avatar-big" id="profile-avatar-preview">🧠</div>
+                    <div class="profile-hero-info">
+                        <div class="profile-rank-row">
+                            <span class="profile-level-badge" id="profile-level-badge">Niv. 1</span>
+                            <strong class="profile-rank-title" id="profile-rank-title">Apprenti Logique</strong>
+                        </div>
+                        <div class="profile-xp-bar">
+                            <div class="profile-xp-fill" id="profile-xp-fill" style="width: 15%"></div>
+                        </div>
+                        <small id="profile-xp-sub">0 victoire • 0 pts cumulés</small>
+                    </div>
+                </div>
+
+                <!-- Pseudo & Choix d'avatar -->
+                <div class="settings-section">
+                    <span class="settings-section-title">Personnaliser le profil</span>
+                    <div class="settings-group-card profile-custom-card">
+                        <label class="profile-input-label" for="profile-name-input">Pseudo du joueur</label>
+                        <input type="text" id="profile-name-input" class="profile-text-input" maxlength="18" placeholder="Votre pseudo...">
+
+                        <span class="profile-input-label">Choisir un avatar</span>
+                        <div class="avatar-picker-grid" id="avatar-picker-grid">
+                            <button type="button" class="avatar-choice active" data-avatar="🧠">🧠</button>
+                            <button type="button" class="avatar-choice" data-avatar="🦊">🦊</button>
+                            <button type="button" class="avatar-choice" data-avatar="🦉">🦉</button>
+                            <button type="button" class="avatar-choice" data-avatar="🐯">🐯</button>
+                            <button type="button" class="avatar-choice" data-avatar="👑">👑</button>
+                            <button type="button" class="avatar-choice" data-avatar="🚀">🚀</button>
+                            <button type="button" class="avatar-choice" data-avatar="⚡">⚡</button>
+                            <button type="button" class="avatar-choice" data-avatar="🐉">🐉</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Partie en cours sauvegardée -->
+                <div class="settings-section">
+                    <span class="settings-section-title">Partie en cours</span>
+                    <div class="settings-group-card current-save-card">
+                        <div class="current-save-row">
+                            <div>
+                                <strong id="profile-game-summary">Facile • 00:00</strong>
+                                <small id="profile-game-progress">Sauvegarde locale automatique active</small>
+                            </div>
+                            <span class="save-pill-ok">✓ Auto</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Synchronisation Cloud par Code Unique -->
+                <div class="settings-section">
+                    <span class="settings-section-title">☁️ Synchronisation Cloud (Sans compte)</span>
+                    <div class="settings-group-card cloud-sync-card">
+                        <p class="cloud-sync-desc">
+                            Générez un <strong>code unique</strong> pour sauvegarder votre profil, vos statistiques et votre partie en cours dans le Cloud et les récupérer sur n'importe quel appareil.
+                        </p>
+
+                        <button type="button" id="btn-cloud-push" class="primary-btn cloud-push-btn">
+                            ☁️ Sauvegarder &amp; Générer mon Code Cloud
+                        </button>
+
+                        <!-- Affichage du code généré -->
+                        <div id="cloud-code-box" class="cloud-code-box hidden">
+                            <div class="cloud-code-top">
+                                <span class="cloud-code-label">Votre Code Cloud :</span>
+                                <strong id="cloud-code-display" class="cloud-code-value">SUDO-XXXXXXXX</strong>
+                            </div>
+                            <div class="cloud-code-actions">
+                                <button type="button" id="btn-copy-cloud-code" class="secondary-btn compact-btn">📋 Copier le code</button>
+                                <button type="button" id="btn-share-cloud-link" class="secondary-btn compact-btn">🔗 Partager le lien</button>
+                            </div>
+                            <small id="cloud-last-sync" class="cloud-sync-meta"></small>
+                        </div>
+
+                        <div class="cloud-divider"><span>ou charger depuis un autre appareil</span></div>
+
+                        <div class="cloud-pull-row">
+                            <input type="text" id="cloud-code-input" class="profile-text-input" placeholder="Code ex: SUDO-SO0oUjih4l">
+                            <button type="button" id="btn-cloud-pull" class="secondary-btn cloud-pull-btn">📥 Charger</button>
+                        </div>
+
+                        <p id="cloud-status-msg" class="cloud-status-msg hidden" role="status"></p>
+                    </div>
+                </div>
+
+                <!-- Sauvegarde par fichier hors-ligne (JSON) -->
+                <div class="settings-section">
+                    <span class="settings-section-title">Fichier de secours hors-ligne</span>
+                    <div class="backup-file-row">
+                        <button type="button" id="btn-export-json" class="secondary-btn compact-btn">💾 Exporter .json</button>
+                        <button type="button" id="btn-import-json" class="secondary-btn compact-btn">📂 Importer .json</button>
+                        <input type="file" id="input-import-file" accept=".json,application/json" class="hidden">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="primary-btn" data-close-modal="modal-profile">Fermer</button>
             </div>
         </div>
     </div>

@@ -1105,6 +1105,253 @@ body {
     transform: translateX(20px);
 }
 
+/* ==========================================================================
+   Profil Joueur & Synchronisation Cloud par Code Unique
+   ========================================================================== */
+.nav-avatar-emoji {
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.profile-hero-card {
+    background: var(--accent-soft);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.profile-avatar-big {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+}
+.profile-hero-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.profile-rank-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.profile-level-badge {
+    background: var(--accent-primary);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+.profile-rank-title {
+    font-size: 0.94rem;
+    color: var(--text-primary);
+}
+.profile-xp-bar {
+    width: 100%;
+    height: 7px;
+    background: var(--board-border-cell);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.profile-xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary), #22c55e);
+    border-radius: 999px;
+    transition: width 0.35s ease;
+}
+.profile-hero-info small {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.profile-custom-card,
+.current-save-card,
+.cloud-sync-card {
+    padding: 12px 14px;
+    gap: 10px;
+}
+.profile-input-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.profile-text-input {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 9px;
+    border: 1.5px solid var(--board-border-cell);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+.profile-text-input:focus {
+    border-color: var(--accent-primary);
+}
+
+.avatar-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+}
+.avatar-choice {
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: var(--bg-surface);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.avatar-choice.active {
+    border-color: var(--accent-primary);
+    background: var(--cell-selected);
+    transform: scale(1.06);
+}
+
+.current-save-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.current-save-row strong {
+    display: block;
+    font-size: 0.88rem;
+    margin-bottom: 2px;
+}
+.current-save-row small {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+.save-pill-ok {
+    background: rgba(34, 197, 94, 0.16);
+    color: #16a34a;
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 4px 9px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.cloud-sync-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.38;
+}
+.cloud-push-btn {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+}
+.cloud-code-box {
+    background: var(--bg-surface);
+    border: 1.5px dashed var(--accent-primary);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.cloud-code-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.cloud-code-label {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+}
+.cloud-code-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.96rem;
+    color: var(--accent-primary);
+    letter-spacing: 0.5px;
+    user-select: all;
+    -webkit-user-select: all;
+}
+.cloud-code-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.compact-btn {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+}
+.cloud-sync-meta {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+.cloud-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    margin: 2px 0;
+}
+.cloud-divider::before,
+.cloud-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--board-border-cell);
+}
+.cloud-pull-row {
+    display: flex;
+    gap: 8px;
+}
+.cloud-pull-btn {
+    width: auto;
+    padding: 9px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.cloud-status-msg {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-radius: 8px;
+    line-height: 1.35;
+}
+.cloud-status-msg.ok {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+}
+.cloud-status-msg.err {
+    background: var(--cell-error-bg);
+    color: var(--digit-error);
+}
+.cloud-status-msg.info {
+    background: var(--cell-selected);
+    color: var(--accent-primary);
+}
+.backup-file-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
 /* Guide d'installation PWA pas-à-pas */
 .install-steps-box {
     display: flex;

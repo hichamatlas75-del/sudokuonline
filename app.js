@@ -6,6 +6,8 @@ class SudokuApp {
     static STORAGE_KEY_GAME = 'sudoku_com_saved_game_v1';
     static STORAGE_KEY_SETTINGS = 'sudoku_com_settings_v1';
     static STORAGE_KEY_STATS = 'sudoku_com_stats_v1';
+    static STORAGE_KEY_PROFILE = 'sudoku_com_profile_v1';
+    static CLOUD_API_URL = 'https://bytebin.lucko.me';
 
     // Nom d'animation CSS -> classe à retirer quand elle se termine
     static ANIM_CLASS_MAP = {
@@ -19,6 +21,8 @@ class SudokuApp {
     constructor() {
         this.settings = this.loadSettings();
         this.stats = this.loadStats();
+        this.profile = this.loadProfile();
+        this.requestPersistentStorage();
 
         // État de la partie en cours
         this.difficulty = 'easy';
@@ -63,6 +67,9 @@ class SudokuApp {
         } else {
             this.playBoardIntro();
         }
+
+        this.syncProfileUI();
+        this.checkUrlCloudImport();
     }
 
     initDOMReferences() {
@@ -224,6 +231,15 @@ class SudokuApp {
             this.renderStatsModal(this.difficulty);
             this.openModal('modal-stats');
         });
+
+        const btnProfile = document.getElementById('btn-profile');
+        if (btnProfile) {
+            btnProfile.addEventListener('click', () => {
+                this.renderProfileModal();
+                this.openModal('modal-profile');
+            });
+        }
+        this.bindProfileAndCloudEvents();
 
         document.querySelectorAll('.stats-tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -1432,6 +1448,425 @@ class SudokuApp {
         try {
             localStorage.setItem(SudokuApp.STORAGE_KEY_STATS, JSON.stringify(this.stats));
         } catch (_) {}
+    }
+
+    /**
+     * Profil Joueur & Synchronisation Cloud légère par Code Unique
+     */
+    requestPersistentStorage() {
+        try {
+            if (navigator.storage && navigator.storage.persist) {
+                navigator.storage.persist().catch(() => {});
+            }
+        } catch (_) {}
+    }
+
+    loadProfile() {
+        const defaults = {
+            name: 'Joueur',
+            avatar: '🧠',
+            lastCloudCode: '',
+            lastCloudSync: null
+        };
+        try {
+            const saved = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_PROFILE));
+            return { ...defaults, ...saved };
+        } catch (_) {
+            return defaults;
+        }
+    }
+
+    saveProfile() {
+        try {
+            localStorage.setItem(SudokuApp.STORAGE_KEY_PROFILE, JSON.stringify(this.profile));
+        } catch (_) {}
+    }
+
+    getProfileRankInfo() {
+        const diffs = Object.keys(this.stats || {});
+        let totalWon = 0;
+        let totalBestScore = 0;
+        diffs.forEach(k => {
+            const s = this.stats[k];
+            if (s) {
+                totalWon += s.won || 0;
+                totalBestScore += s.bestScore || 0;
+            }
+        });
+
+        const ranks = [
+            { level: 1, minWins: 0,  nextWins: 2,  title: 'Apprenti Logique' },
+            { level: 2, minWins: 2,  nextWins: 6,  title: 'Initié Sudoku' },
+            { level: 3, minWins: 6,  nextWins: 15, title: 'Tacticien' },
+            { level: 4, minWins: 15, nextWins: 30, title: 'Expert Confirmé' },
+            { level: 5, minWins: 30, nextWins: 60, title: 'Maître des Chiffres' },
+            { level: 6, minWins: 60, nextWins: 100, title: 'Grand Maître Absolu' }
+        ];
+
+        let current = ranks[0];
+        for (const r of ranks) {
+            if (totalWon >= r.minWins) current = r;
+        }
+
+        const span = Math.max(1, current.nextWins - current.minWins);
+        const pct = current.level === 6
+            ? 100
+            : Math.min(100, Math.max(12, Math.round(((totalWon - current.minWins) / span) * 100)));
+
+        return {
+            level: current.level,
+            title: current.title,
+            totalWon,
+            totalBestScore,
+            progressPct: pct
+        };
+    }
+
+    syncProfileUI() {
+        const navAvatar = document.getElementById('nav-profile-avatar');
+        const navName = document.getElementById('nav-profile-name');
+        if (navAvatar) navAvatar.textContent = this.profile.avatar || '🧠';
+        if (navName) navName.textContent = this.profile.name || 'Profil';
+    }
+
+    renderProfileModal() {
+        this.syncProfileUI();
+        const rank = this.getProfileRankInfo();
+
+        const previewAvatar = document.getElementById('profile-avatar-preview');
+        const levelBadge = document.getElementById('profile-level-badge');
+        const rankTitle = document.getElementById('profile-rank-title');
+        const xpFill = document.getElementById('profile-xp-fill');
+        const xpSub = document.getElementById('profile-xp-sub');
+        const nameInput = document.getElementById('profile-name-input');
+
+        if (previewAvatar) previewAvatar.textContent = this.profile.avatar;
+        if (levelBadge) levelBadge.textContent = `Niv. ${rank.level}`;
+        if (rankTitle) rankTitle.textContent = rank.title;
+        if (xpFill) xpFill.style.width = `${rank.progressPct}%`;
+        if (xpSub) {
+            xpSub.textContent = `${rank.totalWon} victoire${rank.totalWon > 1 ? 's' : ''} • ${rank.totalBestScore.toLocaleString('fr-FR')} pts records`;
+        }
+        if (nameInput && document.activeElement !== nameInput) {
+            nameInput.value = this.profile.name;
+        }
+
+        document.querySelectorAll('.avatar-choice').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.avatar === this.profile.avatar);
+        });
+
+        // Résumé de la partie en cours
+        let filled = 0;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (this.board[r] && this.board[r][c] !== 0) filled++;
+            }
+        }
+        const pctGrid = Math.round((filled / 81) * 100);
+        const diffLabel = (SudokuEngine.DIFFICULTIES[this.difficulty] || SudokuEngine.DIFFICULTIES.easy).label;
+        const gameSummary = document.getElementById('profile-game-summary');
+        const gameProgress = document.getElementById('profile-game-progress');
+        if (gameSummary) {
+            gameSummary.textContent = `${diffLabel} • ${this.formatTime(this.elapsedSeconds)} • ${this.score.toLocaleString('fr-FR')} pts`;
+        }
+        if (gameProgress) {
+            gameProgress.textContent = `Grille remplie à ${pctGrid}% (${filled}/81 cases) — sauvegarde auto active`;
+        }
+
+        // Dernier code Cloud
+        const codeBox = document.getElementById('cloud-code-box');
+        const codeDisplay = document.getElementById('cloud-code-display');
+        const lastSyncEl = document.getElementById('cloud-last-sync');
+        if (this.profile.lastCloudCode && codeBox && codeDisplay) {
+            codeBox.classList.remove('hidden');
+            codeDisplay.textContent = this.profile.lastCloudCode;
+            if (lastSyncEl && this.profile.lastCloudSync) {
+                const d = new Date(this.profile.lastCloudSync);
+                lastSyncEl.textContent = `Dernière sauvegarde Cloud : ${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+            }
+        }
+    }
+
+    bindProfileAndCloudEvents() {
+        const nameInput = document.getElementById('profile-name-input');
+        if (nameInput) {
+            nameInput.addEventListener('input', () => {
+                const val = nameInput.value.trim();
+                this.profile.name = val || 'Joueur';
+                this.saveProfile();
+                this.syncProfileUI();
+            });
+        }
+
+        document.querySelectorAll('.avatar-choice').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.profile.avatar = btn.dataset.avatar;
+                this.saveProfile();
+                this.audio.playClick();
+                this.renderProfileModal();
+            });
+        });
+
+        const btnPush = document.getElementById('btn-cloud-push');
+        if (btnPush) {
+            btnPush.addEventListener('click', () => this.pushToCloud());
+        }
+
+        const btnPull = document.getElementById('btn-cloud-pull');
+        const codeInput = document.getElementById('cloud-code-input');
+        if (btnPull && codeInput) {
+            btnPull.addEventListener('click', () => this.pullFromCloud(codeInput.value));
+            codeInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.pullFromCloud(codeInput.value);
+                }
+            });
+        }
+
+        const btnCopyCode = document.getElementById('btn-copy-cloud-code');
+        if (btnCopyCode) {
+            btnCopyCode.addEventListener('click', async () => {
+                const code = this.profile.lastCloudCode;
+                if (!code) return;
+                try {
+                    await navigator.clipboard.writeText(code);
+                    this.showCloudStatus(`Code « ${code} » copié dans le presse-papiers !`, 'ok');
+                } catch (_) {
+                    this.showCloudStatus(`Votre code : ${code}`, 'ok');
+                }
+            });
+        }
+
+        const btnShareLink = document.getElementById('btn-share-cloud-link');
+        if (btnShareLink) {
+            btnShareLink.addEventListener('click', async () => {
+                const code = this.profile.lastCloudCode;
+                if (!code) return;
+                const rawKey = code.replace(/^SUDO-/i, '');
+                const shareUrl = `${window.location.origin}${window.location.pathname}?cloud=${encodeURIComponent(rawKey)}`;
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: 'Ma sauvegarde Sudoku',
+                            text: `Code de sauvegarde Sudoku : ${code}`,
+                            url: shareUrl
+                        });
+                        return;
+                    } catch (_) {}
+                }
+                try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    this.showCloudStatus('Lien de synchronisation copié dans le presse-papiers !', 'ok');
+                } catch (_) {
+                    this.showCloudStatus(shareUrl, 'ok');
+                }
+            });
+        }
+
+        const btnExport = document.getElementById('btn-export-json');
+        if (btnExport) {
+            btnExport.addEventListener('click', () => this.exportBackupJSON());
+        }
+
+        const btnImport = document.getElementById('btn-import-json');
+        const fileInput = document.getElementById('input-import-file');
+        if (btnImport && fileInput) {
+            btnImport.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (file) this.importBackupJSON(file);
+                fileInput.value = '';
+            });
+        }
+    }
+
+    buildFullBackupBundle() {
+        this.saveGameState();
+        let savedGame = null;
+        try {
+            savedGame = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_GAME));
+        } catch (_) {}
+
+        return {
+            app: 'sudoku-online-v1',
+            updatedAt: new Date().toISOString(),
+            profile: {
+                name: this.profile.name,
+                avatar: this.profile.avatar
+            },
+            stats: this.stats,
+            settings: this.settings,
+            currentGame: savedGame
+        };
+    }
+
+    applyFullBackupBundle(bundle) {
+        if (!bundle || typeof bundle !== 'object') {
+            throw new Error('Format de sauvegarde invalide.');
+        }
+
+        if (bundle.profile) {
+            this.profile.name = (bundle.profile.name || 'Joueur').slice(0, 18);
+            this.profile.avatar = bundle.profile.avatar || '🧠';
+            this.saveProfile();
+        }
+
+        if (bundle.stats && typeof bundle.stats === 'object') {
+            this.stats = { ...this.loadStats(), ...bundle.stats };
+            this.saveStats();
+        }
+
+        if (bundle.settings && typeof bundle.settings === 'object') {
+            this.settings = { ...this.loadSettings(), ...bundle.settings };
+            this.saveSettings();
+            this.applyFeedbackSettings();
+            this.applyTheme(this.settings.theme);
+            this.syncSettingsUI();
+        }
+
+        if (bundle.currentGame && bundle.currentGame.board && bundle.currentGame.solution) {
+            try {
+                localStorage.setItem(SudokuApp.STORAGE_KEY_GAME, JSON.stringify(bundle.currentGame));
+                this.restoreSavedGame();
+            } catch (_) {}
+        }
+
+        this.renderProfileModal();
+        this.render();
+        this.audio.playSecondChance();
+    }
+
+    showCloudStatus(text, type = 'ok') {
+        const el = document.getElementById('cloud-status-msg');
+        if (!el) return;
+        el.textContent = text;
+        el.className = `cloud-status-msg ${type}`;
+        el.classList.remove('hidden');
+    }
+
+    async pushToCloud() {
+        const btnPush = document.getElementById('btn-cloud-push');
+        if (btnPush) btnPush.disabled = true;
+        this.showCloudStatus('Envoi de la sauvegarde vers le Cloud...', 'info');
+
+        try {
+            const payload = this.buildFullBackupBundle();
+            const res = await fetch(`${SudokuApp.CLOUD_API_URL}/post`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (!data || !data.key) throw new Error('Clé Cloud manquante');
+
+            const fullCode = `SUDO-${data.key}`;
+            this.profile.lastCloudCode = fullCode;
+            this.profile.lastCloudSync = new Date().toISOString();
+            this.saveProfile();
+            this.renderProfileModal();
+            this.audio.playHint();
+
+            try {
+                await navigator.clipboard.writeText(fullCode);
+                this.showCloudStatus(`✓ Sauvegardé ! Code « ${fullCode} » copié dans le presse-papiers.`, 'ok');
+            } catch (_) {
+                this.showCloudStatus(`✓ Sauvegardé ! Notez votre code : ${fullCode}`, 'ok');
+            }
+        } catch (_) {
+            this.audio.playError();
+            this.showCloudStatus('Connexion Cloud indisponible. Utilisez « Exporter .json » hors-ligne.', 'err');
+        } finally {
+            if (btnPush) btnPush.disabled = false;
+        }
+    }
+
+    extractCloudKey(rawInput) {
+        if (!rawInput) return '';
+        const trimmed = rawInput.trim();
+        // Si l'utilisateur colle une URL complète contenant ?cloud=XXXX
+        try {
+            if (trimmed.includes('cloud=')) {
+                const u = new URL(trimmed, window.location.origin);
+                const param = u.searchParams.get('cloud');
+                if (param) return param.replace(/^SUDO-/i, '').trim();
+            }
+        } catch (_) {}
+        return trimmed.replace(/^SUDO-/i, '').replace(/[^a-zA-Z0-9_-]/g, '');
+    }
+
+    async pullFromCloud(rawInput) {
+        const key = this.extractCloudKey(rawInput);
+        if (!key || key.length < 4) {
+            this.audio.playBlocked();
+            this.showCloudStatus('Veuillez entrer un code Cloud valide (ex: SUDO-SO0oUjih4l).', 'err');
+            return;
+        }
+
+        const btnPull = document.getElementById('btn-cloud-pull');
+        if (btnPull) btnPull.disabled = true;
+        this.showCloudStatus('Récupération de la sauvegarde Cloud...', 'info');
+
+        try {
+            const res = await fetch(`${SudokuApp.CLOUD_API_URL}/${encodeURIComponent(key)}`);
+            if (!res.ok) throw new Error('Code introuvable ou expiré');
+            const bundle = await res.json();
+
+            this.profile.lastCloudCode = `SUDO-${key}`;
+            this.profile.lastCloudSync = bundle.updatedAt || new Date().toISOString();
+            this.applyFullBackupBundle(bundle);
+            this.showCloudStatus(`✓ Profil « ${this.profile.name} » et partie restaurés avec succès !`, 'ok');
+        } catch (_) {
+            this.audio.playError();
+            this.showCloudStatus('Code Cloud introuvable ou connexion hors-ligne.', 'err');
+        } finally {
+            if (btnPull) btnPull.disabled = false;
+        }
+    }
+
+    checkUrlCloudImport() {
+        try {
+            const url = new URL(window.location.href);
+            const cloudParam = url.searchParams.get('cloud');
+            if (!cloudParam) return;
+
+            url.searchParams.delete('cloud');
+            window.history.replaceState({}, document.title, url.pathname + url.search);
+
+            this.openModal('modal-profile');
+            this.pullFromCloud(cloudParam);
+        } catch (_) {}
+    }
+
+    exportBackupJSON() {
+        const bundle = this.buildFullBackupBundle();
+        const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safeName = (this.profile.name || 'joueur').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        a.href = url;
+        a.download = `sudoku-sauvegarde-${safeName || 'profil'}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        this.showCloudStatus('✓ Fichier de sauvegarde .json téléchargé.', 'ok');
+    }
+
+    importBackupJSON(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const bundle = JSON.parse(String(reader.result));
+                this.applyFullBackupBundle(bundle);
+                this.showCloudStatus(`✓ Fichier importé ! Profil « ${this.profile.name} » restauré.`, 'ok');
+            } catch (_) {
+                this.audio.playError();
+                this.showCloudStatus('Fichier .json invalide ou corrompu.', 'err');
+            }
+        };
+        reader.readAsText(file);
     }
 }
 
