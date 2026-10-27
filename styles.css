@@ -1182,6 +1182,26 @@ body {
     padding: 12px 14px;
     gap: 10px;
 }
+.profile-credentials-grid {
+    display: grid;
+    grid-template-columns: 1fr 120px;
+    gap: 10px;
+}
+.profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.pin-input {
+    text-align: center;
+    letter-spacing: 4px;
+    font-weight: 700;
+}
+.cloud-kv-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
 .profile-input-label {
     font-size: 0.78rem;
     font-weight: 600;

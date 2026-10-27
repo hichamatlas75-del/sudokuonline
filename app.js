@@ -7,7 +7,7 @@ class SudokuApp {
     static STORAGE_KEY_SETTINGS = 'sudoku_com_settings_v1';
     static STORAGE_KEY_STATS = 'sudoku_com_stats_v1';
     static STORAGE_KEY_PROFILE = 'sudoku_com_profile_v1';
-    static CLOUD_API_URL = 'https://bytebin.lucko.me';
+    static CLOUD_KV_ENDPOINT = '/api/sync';
 
     // Nom d'animation CSS -> classe à retirer quand elle se termine
     static ANIM_CLASS_MAP = {
@@ -69,7 +69,6 @@ class SudokuApp {
         }
 
         this.syncProfileUI();
-        this.checkUrlCloudImport();
     }
 
     initDOMReferences() {
@@ -1333,6 +1332,7 @@ class SudokuApp {
         try {
             localStorage.setItem(SudokuApp.STORAGE_KEY_GAME, JSON.stringify(payload));
         } catch (_) {}
+        this.scheduleAutoCloudSync();
     }
 
     restoreSavedGame() {
@@ -1464,8 +1464,9 @@ class SudokuApp {
     loadProfile() {
         const defaults = {
             name: 'Joueur',
+            pin: '',
             avatar: '🧠',
-            lastCloudCode: '',
+            autoCloudSync: false,
             lastCloudSync: null
         };
         try {
@@ -1539,6 +1540,7 @@ class SudokuApp {
         const xpFill = document.getElementById('profile-xp-fill');
         const xpSub = document.getElementById('profile-xp-sub');
         const nameInput = document.getElementById('profile-name-input');
+        const pinInput = document.getElementById('profile-pin-input');
 
         if (previewAvatar) previewAvatar.textContent = this.profile.avatar;
         if (levelBadge) levelBadge.textContent = `Niv. ${rank.level}`;
@@ -1548,7 +1550,10 @@ class SudokuApp {
             xpSub.textContent = `${rank.totalWon} victoire${rank.totalWon > 1 ? 's' : ''} • ${rank.totalBestScore.toLocaleString('fr-FR')} pts records`;
         }
         if (nameInput && document.activeElement !== nameInput) {
-            nameInput.value = this.profile.name;
+            nameInput.value = this.profile.name === 'Joueur' ? '' : this.profile.name;
+        }
+        if (pinInput && document.activeElement !== pinInput) {
+            pinInput.value = this.profile.pin || '';
         }
 
         document.querySelectorAll('.avatar-choice').forEach(btn => {
@@ -1566,29 +1571,33 @@ class SudokuApp {
         const diffLabel = (SudokuEngine.DIFFICULTIES[this.difficulty] || SudokuEngine.DIFFICULTIES.easy).label;
         const gameSummary = document.getElementById('profile-game-summary');
         const gameProgress = document.getElementById('profile-game-progress');
+        const syncBadge = document.getElementById('cloud-sync-badge');
+
         if (gameSummary) {
             gameSummary.textContent = `${diffLabel} • ${this.formatTime(this.elapsedSeconds)} • ${this.score.toLocaleString('fr-FR')} pts`;
         }
         if (gameProgress) {
-            gameProgress.textContent = `Grille remplie à ${pctGrid}% (${filled}/81 cases) — sauvegarde auto active`;
+            gameProgress.textContent = `Grille remplie à ${pctGrid}% (${filled}/81 cases)`;
+        }
+        if (syncBadge) {
+            syncBadge.textContent = this.profile.autoCloudSync ? '☁️ Cloud Auto' : '✓ Local';
         }
 
-        // Dernier code Cloud
-        const codeBox = document.getElementById('cloud-code-box');
-        const codeDisplay = document.getElementById('cloud-code-display');
         const lastSyncEl = document.getElementById('cloud-last-sync');
-        if (this.profile.lastCloudCode && codeBox && codeDisplay) {
-            codeBox.classList.remove('hidden');
-            codeDisplay.textContent = this.profile.lastCloudCode;
-            if (lastSyncEl && this.profile.lastCloudSync) {
+        if (lastSyncEl) {
+            if (this.profile.lastCloudSync) {
                 const d = new Date(this.profile.lastCloudSync);
-                lastSyncEl.textContent = `Dernière sauvegarde Cloud : ${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+                lastSyncEl.textContent = `Dernière synchro Cloudflare KV : ${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+            } else {
+                lastSyncEl.textContent = '';
             }
         }
     }
 
     bindProfileAndCloudEvents() {
         const nameInput = document.getElementById('profile-name-input');
+        const pinInput = document.getElementById('profile-pin-input');
+
         if (nameInput) {
             nameInput.addEventListener('input', () => {
                 const val = nameInput.value.trim();
@@ -1598,70 +1607,32 @@ class SudokuApp {
             });
         }
 
+        if (pinInput) {
+            pinInput.addEventListener('input', () => {
+                pinInput.value = pinInput.value.replace(/[^0-9]/g, '').slice(0, 4);
+                this.profile.pin = pinInput.value;
+                this.saveProfile();
+            });
+        }
+
         document.querySelectorAll('.avatar-choice').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.profile.avatar = btn.dataset.avatar;
                 this.saveProfile();
                 this.audio.playClick();
                 this.renderProfileModal();
+                this.scheduleAutoCloudSync();
             });
         });
 
         const btnPush = document.getElementById('btn-cloud-push');
         if (btnPush) {
-            btnPush.addEventListener('click', () => this.pushToCloud());
+            btnPush.addEventListener('click', () => this.pushToCloud(false));
         }
 
         const btnPull = document.getElementById('btn-cloud-pull');
-        const codeInput = document.getElementById('cloud-code-input');
-        if (btnPull && codeInput) {
-            btnPull.addEventListener('click', () => this.pullFromCloud(codeInput.value));
-            codeInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    this.pullFromCloud(codeInput.value);
-                }
-            });
-        }
-
-        const btnCopyCode = document.getElementById('btn-copy-cloud-code');
-        if (btnCopyCode) {
-            btnCopyCode.addEventListener('click', async () => {
-                const code = this.profile.lastCloudCode;
-                if (!code) return;
-                try {
-                    await navigator.clipboard.writeText(code);
-                    this.showCloudStatus(`Code « ${code} » copié dans le presse-papiers !`, 'ok');
-                } catch (_) {
-                    this.showCloudStatus(`Votre code : ${code}`, 'ok');
-                }
-            });
-        }
-
-        const btnShareLink = document.getElementById('btn-share-cloud-link');
-        if (btnShareLink) {
-            btnShareLink.addEventListener('click', async () => {
-                const code = this.profile.lastCloudCode;
-                if (!code) return;
-                const rawKey = code.replace(/^SUDO-/i, '');
-                const shareUrl = `${window.location.origin}${window.location.pathname}?cloud=${encodeURIComponent(rawKey)}`;
-                if (navigator.share) {
-                    try {
-                        await navigator.share({
-                            title: 'Ma sauvegarde Sudoku',
-                            text: `Code de sauvegarde Sudoku : ${code}`,
-                            url: shareUrl
-                        });
-                        return;
-                    } catch (_) {}
-                }
-                try {
-                    await navigator.clipboard.writeText(shareUrl);
-                    this.showCloudStatus('Lien de synchronisation copié dans le presse-papiers !', 'ok');
-                } catch (_) {
-                    this.showCloudStatus(shareUrl, 'ok');
-                }
-            });
+        if (btnPull) {
+            btnPull.addEventListener('click', () => this.pullFromCloud());
         }
 
         const btnExport = document.getElementById('btn-export-json');
@@ -1682,7 +1653,6 @@ class SudokuApp {
     }
 
     buildFullBackupBundle() {
-        this.saveGameState();
         let savedGame = null;
         try {
             savedGame = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_GAME));
@@ -1745,98 +1715,136 @@ class SudokuApp {
         el.classList.remove('hidden');
     }
 
-    async pushToCloud() {
+    getCredentialsFromInputs() {
+        const nameInput = document.getElementById('profile-name-input');
+        const pinInput = document.getElementById('profile-pin-input');
+        const pseudo = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : this.profile.name;
+        const pin = (pinInput && pinInput.value.trim()) ? pinInput.value.trim() : (this.profile.pin || '');
+        return { pseudo, pin };
+    }
+
+    scheduleAutoCloudSync() {
+        if (!this.profile || !this.profile.autoCloudSync) return;
+        if (!this.profile.name || this.profile.name === 'Joueur' || !/^[0-9]{4}$/.test(this.profile.pin || '')) return;
+
+        if (this._autoSyncTimer) clearTimeout(this._autoSyncTimer);
+        this._autoSyncTimer = setTimeout(() => {
+            this.pushToCloud(true);
+        }, 3500);
+    }
+
+    async pushToCloud(silent = false) {
+        const { pseudo, pin } = this.getCredentialsFromInputs();
+
+        if (!pseudo || pseudo === 'Joueur' || pseudo.length < 2) {
+            if (!silent) {
+                this.audio.playBlocked();
+                this.showCloudStatus('Veuillez choisir un Pseudo (au moins 2 lettres) ci-dessus.', 'err');
+            }
+            return;
+        }
+        if (!/^[0-9]{4}$/.test(pin)) {
+            if (!silent) {
+                this.audio.playBlocked();
+                this.showCloudStatus('Veuillez entrer un code PIN à 4 chiffres (ex: 1234).', 'err');
+            }
+            return;
+        }
+
+        this.profile.name = pseudo;
+        this.profile.pin = pin;
+        this.saveProfile();
+        this.syncProfileUI();
+
         const btnPush = document.getElementById('btn-cloud-push');
-        if (btnPush) btnPush.disabled = true;
-        this.showCloudStatus('Envoi de la sauvegarde vers le Cloud...', 'info');
+        if (!silent) {
+            if (btnPush) btnPush.disabled = true;
+            this.showCloudStatus('Sauvegarde en cours sur Cloudflare KV...', 'info');
+        }
 
         try {
-            const payload = this.buildFullBackupBundle();
-            const res = await fetch(`${SudokuApp.CLOUD_API_URL}/post`, {
+            const bundle = this.buildFullBackupBundle();
+            const res = await fetch(SudokuApp.CLOUD_KV_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    action: 'save',
+                    pseudo,
+                    pin,
+                    bundle
+                })
             });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            if (!data || !data.key) throw new Error('Clé Cloud manquante');
 
-            const fullCode = `SUDO-${data.key}`;
-            this.profile.lastCloudCode = fullCode;
-            this.profile.lastCloudSync = new Date().toISOString();
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.ok) {
+                throw new Error(data.error || `Erreur serveur (${res.status})`);
+            }
+
+            this.profile.autoCloudSync = true;
+            this.profile.lastCloudSync = data.updatedAt || new Date().toISOString();
             this.saveProfile();
             this.renderProfileModal();
-            this.audio.playHint();
 
-            try {
-                await navigator.clipboard.writeText(fullCode);
-                this.showCloudStatus(`✓ Sauvegardé ! Code « ${fullCode} » copié dans le presse-papiers.`, 'ok');
-            } catch (_) {
-                this.showCloudStatus(`✓ Sauvegardé ! Notez votre code : ${fullCode}`, 'ok');
+            if (!silent) {
+                this.audio.playHint();
+                this.showCloudStatus(`✓ Profil « ${pseudo} » sauvegardé sur Cloudflare KV ! La synchro automatique est activée.`, 'ok');
             }
-        } catch (_) {
-            this.audio.playError();
-            this.showCloudStatus('Connexion Cloud indisponible. Utilisez « Exporter .json » hors-ligne.', 'err');
+        } catch (err) {
+            if (!silent) {
+                this.audio.playError();
+                this.showCloudStatus(err.message || 'Serveur Cloudflare KV non disponible.', 'err');
+            }
         } finally {
-            if (btnPush) btnPush.disabled = false;
+            if (!silent && btnPush) btnPush.disabled = false;
         }
     }
 
-    extractCloudKey(rawInput) {
-        if (!rawInput) return '';
-        const trimmed = rawInput.trim();
-        // Si l'utilisateur colle une URL complète contenant ?cloud=XXXX
-        try {
-            if (trimmed.includes('cloud=')) {
-                const u = new URL(trimmed, window.location.origin);
-                const param = u.searchParams.get('cloud');
-                if (param) return param.replace(/^SUDO-/i, '').trim();
-            }
-        } catch (_) {}
-        return trimmed.replace(/^SUDO-/i, '').replace(/[^a-zA-Z0-9_-]/g, '');
-    }
+    async pullFromCloud() {
+        const { pseudo, pin } = this.getCredentialsFromInputs();
 
-    async pullFromCloud(rawInput) {
-        const key = this.extractCloudKey(rawInput);
-        if (!key || key.length < 4) {
+        if (!pseudo || pseudo === 'Joueur' || pseudo.length < 2) {
             this.audio.playBlocked();
-            this.showCloudStatus('Veuillez entrer un code Cloud valide (ex: SUDO-SO0oUjih4l).', 'err');
+            this.showCloudStatus('Entrez votre Pseudo ci-dessus pour récupérer votre profil.', 'err');
+            return;
+        }
+        if (!/^[0-9]{4}$/.test(pin)) {
+            this.audio.playBlocked();
+            this.showCloudStatus('Entrez votre code PIN à 4 chiffres.', 'err');
             return;
         }
 
         const btnPull = document.getElementById('btn-cloud-pull');
         if (btnPull) btnPull.disabled = true;
-        this.showCloudStatus('Récupération de la sauvegarde Cloud...', 'info');
+        this.showCloudStatus('Recherche de votre profil sur Cloudflare KV...', 'info');
 
         try {
-            const res = await fetch(`${SudokuApp.CLOUD_API_URL}/${encodeURIComponent(key)}`);
-            if (!res.ok) throw new Error('Code introuvable ou expiré');
-            const bundle = await res.json();
+            const res = await fetch(SudokuApp.CLOUD_KV_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'load',
+                    pseudo,
+                    pin
+                })
+            });
 
-            this.profile.lastCloudCode = `SUDO-${key}`;
-            this.profile.lastCloudSync = bundle.updatedAt || new Date().toISOString();
-            this.applyFullBackupBundle(bundle);
-            this.showCloudStatus(`✓ Profil « ${this.profile.name} » et partie restaurés avec succès !`, 'ok');
-        } catch (_) {
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.ok || !data.bundle) {
+                throw new Error(data.error || 'Aucune sauvegarde trouvée pour ce couple Pseudo + PIN.');
+            }
+
+            this.profile.name = pseudo;
+            this.profile.pin = pin;
+            this.profile.autoCloudSync = true;
+            this.profile.lastCloudSync = data.updatedAt || new Date().toISOString();
+            this.applyFullBackupBundle(data.bundle);
+            this.showCloudStatus(`✓ Profil « ${this.profile.name} » et partie en cours récupérés avec succès !`, 'ok');
+        } catch (err) {
             this.audio.playError();
-            this.showCloudStatus('Code Cloud introuvable ou connexion hors-ligne.', 'err');
+            this.showCloudStatus(err.message || 'Impossible de récupérer la sauvegarde.', 'err');
         } finally {
             if (btnPull) btnPull.disabled = false;
         }
-    }
-
-    checkUrlCloudImport() {
-        try {
-            const url = new URL(window.location.href);
-            const cloudParam = url.searchParams.get('cloud');
-            if (!cloudParam) return;
-
-            url.searchParams.delete('cloud');
-            window.history.replaceState({}, document.title, url.pathname + url.search);
-
-            this.openModal('modal-profile');
-            this.pullFromCloud(cloudParam);
-        } catch (_) {}
     }
 
     exportBackupJSON() {

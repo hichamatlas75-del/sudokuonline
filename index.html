@@ -406,12 +406,20 @@
                     </div>
                 </div>
 
-                <!-- Pseudo & Choix d'avatar -->
+                <!-- Pseudo, Code PIN à 4 chiffres & Choix d'avatar -->
                 <div class="settings-section">
-                    <span class="settings-section-title">Personnaliser le profil</span>
+                    <span class="settings-section-title">Identifiants (Pseudo + Code PIN)</span>
                     <div class="settings-group-card profile-custom-card">
-                        <label class="profile-input-label" for="profile-name-input">Pseudo du joueur</label>
-                        <input type="text" id="profile-name-input" class="profile-text-input" maxlength="18" placeholder="Votre pseudo...">
+                        <div class="profile-credentials-grid">
+                            <div class="profile-field">
+                                <label class="profile-input-label" for="profile-name-input">Pseudo</label>
+                                <input type="text" id="profile-name-input" class="profile-text-input" maxlength="18" autocomplete="username" placeholder="Ex: Hicham">
+                            </div>
+                            <div class="profile-field profile-pin-field">
+                                <label class="profile-input-label" for="profile-pin-input">PIN (4 chiffres)</label>
+                                <input type="password" id="profile-pin-input" class="profile-text-input pin-input" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="1234">
+                            </div>
+                        </div>
 
                         <span class="profile-input-label">Choisir un avatar</span>
                         <div class="avatar-picker-grid" id="avatar-picker-grid">
@@ -436,43 +444,29 @@
                                 <strong id="profile-game-summary">Facile • 00:00</strong>
                                 <small id="profile-game-progress">Sauvegarde locale automatique active</small>
                             </div>
-                            <span class="save-pill-ok">✓ Auto</span>
+                            <span id="cloud-sync-badge" class="save-pill-ok">✓ Local</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Synchronisation Cloud par Code Unique -->
+                <!-- Synchronisation Cloud Cloudflare KV par Pseudo + PIN -->
                 <div class="settings-section">
-                    <span class="settings-section-title">☁️ Synchronisation Cloud (Sans compte)</span>
+                    <span class="settings-section-title">☁️ Sauvegarde en ligne (Cloudflare KV)</span>
                     <div class="settings-group-card cloud-sync-card">
                         <p class="cloud-sync-desc">
-                            Générez un <strong>code unique</strong> pour sauvegarder votre profil, vos statistiques et votre partie en cours dans le Cloud et les récupérer sur n'importe quel appareil.
+                            Entrez votre <strong>Pseudo</strong> et votre <strong>code PIN à 4 chiffres</strong> ci-dessus : vos parties et statistiques sont liées à ce couple d'identifiants sur tous vos appareils, <strong>sans aucun code à copier-coller</strong>.
                         </p>
 
-                        <button type="button" id="btn-cloud-push" class="primary-btn cloud-push-btn">
-                            ☁️ Sauvegarder &amp; Générer mon Code Cloud
-                        </button>
-
-                        <!-- Affichage du code généré -->
-                        <div id="cloud-code-box" class="cloud-code-box hidden">
-                            <div class="cloud-code-top">
-                                <span class="cloud-code-label">Votre Code Cloud :</span>
-                                <strong id="cloud-code-display" class="cloud-code-value">SUDO-XXXXXXXX</strong>
-                            </div>
-                            <div class="cloud-code-actions">
-                                <button type="button" id="btn-copy-cloud-code" class="secondary-btn compact-btn">📋 Copier le code</button>
-                                <button type="button" id="btn-share-cloud-link" class="secondary-btn compact-btn">🔗 Partager le lien</button>
-                            </div>
-                            <small id="cloud-last-sync" class="cloud-sync-meta"></small>
+                        <div class="cloud-kv-actions">
+                            <button type="button" id="btn-cloud-push" class="primary-btn cloud-push-btn">
+                                ☁️ Sauvegarder en ligne (Pseudo + PIN)
+                            </button>
+                            <button type="button" id="btn-cloud-pull" class="secondary-btn cloud-push-btn">
+                                📥 Récupérer ma sauvegarde (Pseudo + PIN)
+                            </button>
                         </div>
 
-                        <div class="cloud-divider"><span>ou charger depuis un autre appareil</span></div>
-
-                        <div class="cloud-pull-row">
-                            <input type="text" id="cloud-code-input" class="profile-text-input" placeholder="Code ex: SUDO-SO0oUjih4l">
-                            <button type="button" id="btn-cloud-pull" class="secondary-btn cloud-pull-btn">📥 Charger</button>
-                        </div>
-
+                        <small id="cloud-last-sync" class="cloud-sync-meta"></small>
                         <p id="cloud-status-msg" class="cloud-status-msg hidden" role="status"></p>
                     </div>
                 </div>

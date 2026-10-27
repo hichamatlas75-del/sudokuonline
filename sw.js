@@ -12,7 +12,7 @@
  * (Chrome affiche alors ERR_FAILED). On ne met donc en cache que « ./ » et on
  * nettoie toute réponse redirigée avant de la stocker.
  */
-const VERSION = 'v1.0.4';
+const VERSION = 'v1.0.5';
 const SHELL_CACHE = `sudoku-shell-${VERSION}`;
 const FONT_CACHE = 'sudoku-fonts-v1';
 

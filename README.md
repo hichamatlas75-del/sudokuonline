@@ -27,8 +27,12 @@ Application Web de Sudoku gratuite en ligne inspirée de **Sudoku.com**, dévelo
 - **PWA installable et 100 % hors ligne** : `manifest.webmanifest`, `sw.js` (cache de l'application), icônes dans `icons/` (dont maskable), bouton **Installer** (Android/Chrome/Edge/desktop) et astuce d'installation sur iOS.
 - **Mises à jour** : un bandeau « Mettre à jour » apparaît quand une nouvelle version est prête.
 
-### Déploiement
+### Déploiement & Sauvegarde Cloud (Cloudflare KV)
 - Nécessite **HTTPS** (ou `localhost`) ; en ouverture directe `file://` le jeu fonctionne mais sans mode hors ligne ni installation.
+- **Activer la sauvegarde en ligne `Pseudo + PIN` sur Cloudflare Pages** :
+  1. Dans votre tableau de bord Cloudflare → **Storage & Databases → KV** → cliquez sur **Create a namespace** et nommez-le `SUDOKU_KV`.
+  2. Allez dans **Workers & Pages → votre projet `sudokuonline` → Settings → Functions → KV namespace bindings**.
+  3. Ajoutez une liaison avec **Variable name** = `SUDOKU_KV` pointant vers votre namespace `SUDOKU_KV`, puis redéployez. La route `/api/sync` (`functions/api/sync.js`) est automatiquement active !
 - ⚠️ **À chaque déploiement modifiant un fichier, incrémentez `VERSION` dans `sw.js`** (sinon les visiteurs gardent l'ancienne version en cache).
 - Le fichier `_headers` (Cloudflare Pages / Netlify) empêche la mise en cache HTTP de `sw.js` et du manifeste.
 - Si vous ajoutez un fichier au jeu, ajoutez-le aussi à la liste `SHELL` de `sw.js`.
