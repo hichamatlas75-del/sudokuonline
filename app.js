@@ -260,6 +260,7 @@ class SudokuApp {
         bindSetting('set-hide-used-numbers', 'hideUsedNumbers');
         bindSetting('set-sound-enabled', 'soundEnabled');
         bindSetting('set-animations', 'animationsEnabled');
+        bindSetting('set-haptics', 'hapticsEnabled');
 
         document.getElementById('set-sound-enabled').addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -288,6 +289,13 @@ class SudokuApp {
         });
 
         this.btnSound.addEventListener('click', () => this.toggleSound());
+
+        // Mobile : mise en pause automatique quand l'app passe en arrière-plan
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && !this.isPaused && !this.isGameOver && !this.isWon) {
+                this.togglePause(true);
+            }
+        });
 
         // Petit clic sonore sur les boutons d'interface (les actions de jeu ont leurs propres sons)
         const uiClickSelector = '.theme-btn, .nav-icon-btn:not(#btn-sound), .secondary-btn, .primary-btn, ' +
@@ -479,7 +487,10 @@ class SudokuApp {
 
             // Vérifier les nouvelles unités (ligne, colonne, bloc) complétées
             unitsDone = this.updateCompletedUnitsSnapshot(true);
-            if (unitsDone > 0) this.audio.playUnitComplete(unitsDone);
+            if (unitsDone > 0) {
+                this.audio.playUnitComplete(unitsDone);
+                this.haptic([15, 30, 15, 30, 40]);
+            }
             if (this.getRemainingCount(num) === 0) this.celebrateDigit(num);
 
             // Si tous les exemplaires de ce chiffre sont placés et qu'il était verrouillé en mode rapide
@@ -492,6 +503,7 @@ class SudokuApp {
                 this.mistakes += 1;
                 errorCounted = true;
                 this.audio.playError();
+                this.haptic([30, 40, 30]);
                 this.animateCell(row, col, 'shake');
                 this.bump(this.mistakesContainer, 'pulse-error');
                 this.bump(this.boardEl, 'board-error');
@@ -499,6 +511,7 @@ class SudokuApp {
                     this.isGameOver = true;
                     this.stopTimer();
                     this.audio.playGameOver();
+                    this.haptic(200);
                     this.render();
                     this.saveGameState();
                     this.openModal('modal-game-over');
@@ -823,6 +836,7 @@ class SudokuApp {
             : 'Vous avez résolu la grille avec succès !';
 
         this.audio.playVictory();
+        this.haptic([60, 40, 60, 40, 120]);
         this.victoryWave();
 
         setTimeout(() => {
@@ -1061,6 +1075,12 @@ class SudokuApp {
         }
     }
 
+    /** Vibration courte (Android/Chrome) ; ignorée si non supportée ou désactivée. */
+    haptic(pattern) {
+        if (!this.settings.hapticsEnabled || !navigator.vibrate) return;
+        try { navigator.vibrate(pattern); } catch (_) { /* ignoré */ }
+    }
+
     /** Rejoue une animation CSS sur une cellule (pop, shake...). */
     animateCell(row, col, kind) {
         if (!SudokuFX.enabled) return;
@@ -1173,6 +1193,11 @@ class SudokuApp {
     applyTheme(themeName) {
         document.documentElement.setAttribute('data-theme', themeName);
         this.settings.theme = themeName;
+        const themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) {
+            const navColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-navbar').trim();
+            if (navColor) themeMeta.setAttribute('content', navColor);
+        }
         this.themeBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.themeTarget === themeName);
         });
@@ -1264,6 +1289,7 @@ class SudokuApp {
             hideUsedNumbers: true,
             soundEnabled: true,
             soundVolume: 0.6,
+            hapticsEnabled: true,
             // Respecte la préférence système « réduire les animations »
             animationsEnabled: !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
         };
@@ -1291,6 +1317,7 @@ class SudokuApp {
         document.getElementById('set-sound-enabled').checked = this.settings.soundEnabled;
         document.getElementById('set-sound-volume').value = Math.round(this.settings.soundVolume * 100);
         document.getElementById('set-animations').checked = this.settings.animationsEnabled;
+        document.getElementById('set-haptics').checked = this.settings.hapticsEnabled;
     }
 
     loadStats() {

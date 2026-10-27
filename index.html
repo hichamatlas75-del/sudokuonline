@@ -2,7 +2,17 @@
 <html lang="fr" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="Sudoku gratuit en ligne et hors ligne : 6 niveaux, notes, indices intelligents, statistiques.">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Sudoku">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Sudoku.com - Jeu de Sudoku Gratuit en Ligne</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,6 +45,15 @@
                     <button class="theme-btn" data-theme-target="sepia" title="Thème Sépia">📜</button>
                     <button class="theme-btn" data-theme-target="dark" title="Thème Sombre">🌙</button>
                 </div>
+
+                <button id="btn-install" class="nav-icon-btn hidden" title="Installer l'application">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3v12"/>
+                        <path d="m7 11 5 5 5-5"/>
+                        <path d="M5 21h14"/>
+                    </svg>
+                    <span class="nav-btn-label">Installer</span>
+                </button>
 
                 <button id="btn-sound" class="nav-icon-btn" title="Son (M)" aria-pressed="true">
                     <svg id="icon-sound-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -374,6 +393,14 @@
 
                 <label class="setting-row">
                     <div class="setting-text">
+                        <strong>Vibrations</strong>
+                        <small>Retour haptique sur erreur, ligne complétée et victoire (mobile compatible)</small>
+                    </div>
+                    <input type="checkbox" id="set-haptics" checked>
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
                         <strong>Animations</strong>
                         <small>Rebonds, secousses, points flottants et confettis</small>
                     </div>
@@ -439,5 +466,17 @@
     <script src="sound.js"></script>
     <script src="effects.js"></script>
     <script src="app.js"></script>
+
+    <!-- Bannières PWA -->
+    <div id="update-toast" class="toast hidden" role="status">
+        <span>Une nouvelle version est disponible.</span>
+        <button id="btn-update" class="toast-btn">Mettre à jour</button>
+    </div>
+    <div id="ios-install-hint" class="toast hidden" role="status">
+        <span>Installer : touchez <strong>Partager</strong> puis <strong>Sur l'écran d'accueil</strong>.</span>
+        <button id="btn-ios-hint-close" class="toast-btn">OK</button>
+    </div>
+
+    <script src="pwa.js"></script>
 </body>
 </html>
