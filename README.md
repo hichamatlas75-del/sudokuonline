@@ -21,5 +21,17 @@ Application Web de Sudoku gratuite en ligne inspirée de **Sudoku.com**, dévelo
 - Réglage **Animations** (désactivable) ; respecte automatiquement `prefers-reduced-motion`.
 - Nouveaux fichiers : `sound.js` (moteur audio) et `effects.js` (points flottants, compteur, confettis).
 
+## Mobile & PWA
+- **Mobile d'abord** : la partie tient sur un écran de téléphone (grille pleine largeur, bornée par la hauteur disponible), difficultés défilantes au doigt, contrôles dans l'ordre du pouce (actions → chiffres 1-9 sur une ligne → outils), modales en feuilles qui montent du bas, indice en bandeau flottant, support des encoches (`safe-area`), paysage en 2 colonnes.
+- **Pause automatique** quand l'app passe en arrière-plan, **vibrations** (réglables) sur erreur / ligne complétée / victoire, couleur de la barre système synchronisée avec le thème.
+- **PWA installable et 100 % hors ligne** : `manifest.webmanifest`, `sw.js` (cache de l'application), icônes dans `icons/` (dont maskable), bouton **Installer** (Android/Chrome/Edge/desktop) et astuce d'installation sur iOS.
+- **Mises à jour** : un bandeau « Mettre à jour » apparaît quand une nouvelle version est prête.
+
+### Déploiement
+- Nécessite **HTTPS** (ou `localhost`) ; en ouverture directe `file://` le jeu fonctionne mais sans mode hors ligne ni installation.
+- ⚠️ **À chaque déploiement modifiant un fichier, incrémentez `VERSION` dans `sw.js`** (sinon les visiteurs gardent l'ancienne version en cache).
+- Le fichier `_headers` (Cloudflare Pages / Netlify) empêche la mise en cache HTTP de `sw.js` et du manifeste.
+- Si vous ajoutez un fichier au jeu, ajoutez-le aussi à la liste `SHELL` de `sw.js`.
+
 ## Lancer en local
-Ouvrez simplement `index.html` dans votre navigateur.
+Ouvrez simplement `index.html` dans votre navigateur (ou servez le dossier, ex. `npx serve`, pour tester la PWA sur `localhost`).
