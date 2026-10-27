@@ -12,7 +12,7 @@
  * (Chrome affiche alors ERR_FAILED). On ne met donc en cache que « ./ » et on
  * nettoie toute réponse redirigée avant de la stocker.
  */
-const VERSION = 'v1.0.1';
+const VERSION = 'v1.0.2';
 const SHELL_CACHE = `sudoku-shell-${VERSION}`;
 const FONT_CACHE = 'sudoku-fonts-v1';
 
@@ -49,12 +49,7 @@ self.addEventListener('install', (event) => {
                 if (!res.ok) throw new Error(`Précache impossible : ${url} (${res.status})`);
                 await cache.put(url, await clean(res));
             }))
-        ).then(() => {
-            // Correctif v1.0.1 : activation immédiate pour réparer les appareils dont
-            // l'ancienne version (v1.0.0) affichait ERR_FAILED. Pour revenir au mode
-            // « Mettre à jour » (prompt) lors des prochaines versions, supprimer cette ligne.
-            self.skipWaiting();
-        })
+        )
     );
 });
 

@@ -306,15 +306,27 @@ class SudokuEngine {
             }
         }
 
-        // 4. Repli sur la case sélectionnée (si vide) ou la première case vide avec le moins de candidats
-        if (cellsOrder.length > 0) {
-            const [r, c] = cellsOrder[0];
+        // 4. Repli sur la case sélectionnée (si vide) ou la case vide ayant le moins de candidats (MRV)
+        if (selectedRow !== null && selectedCol !== null && board[selectedRow][selectedCol] === 0) {
+            return {
+                row: selectedRow,
+                col: selectedCol,
+                value: solution[selectedRow][selectedCol],
+                technique: 'Indice sur la case sélectionnée',
+                explanation: `Le chiffre correct pour la case (L${selectedRow + 1}, C${selectedCol + 1}) est ${solution[selectedRow][selectedCol]}.`
+            };
+        }
+
+        const bestEmpty = this.findBestEmptyCell(board);
+        if (bestEmpty) {
+            const { row: r, col: c, candidates } = bestEmpty;
+            const candText = candidates && candidates.length > 0 ? ` (candidats : ${candidates.join(', ')})` : '';
             return {
                 row: r,
                 col: c,
                 value: solution[r][c],
-                technique: 'Indice direct',
-                explanation: `Le chiffre correct pour la case (L${r + 1}, C${c + 1}) est ${solution[r][c]}.`
+                technique: 'Déduction avancée',
+                explanation: `La case (L${r + 1}, C${c + 1})${candText} a pour valeur ${solution[r][c]}.`
             };
         }
 

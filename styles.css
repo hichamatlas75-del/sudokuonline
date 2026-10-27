@@ -1025,8 +1025,13 @@ body {
     100% { transform: scale(1); }
 }
 
-/* --- Erreur : secousse de la case + halo rouge sur la grille --- */
-.sudoku-cell.anim-shake { animation: cellShake 0.4s ease; }
+/* --- Erreur : secousse de la case ou d'un bouton + halo rouge sur la grille --- */
+.sudoku-cell.anim-shake,
+.action-btn.anim-shake { animation: cellShake 0.4s ease; }
+.action-btn.disabled-action .action-icon-circle {
+    opacity: 0.48;
+    color: var(--text-secondary);
+}
 @keyframes cellShake {
     0%, 100% { transform: translateX(0); }
     15% { transform: translateX(-5px); }
@@ -1052,20 +1057,35 @@ body {
     to   { opacity: 1; transform: scale(1); }
 }
 
-/* --- Points flottants (+120) --- */
+/* --- Points flottants (+120) & Badge de Combo --- */
 .board-wrapper { position: relative; }
 .float-score {
     position: absolute;
     z-index: 20;
     pointer-events: none;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
     font-weight: 800;
-    font-size: 1.05rem;
+    font-size: 1.08rem;
     color: var(--digit-user);
     text-shadow: 0 1px 0 var(--bg-surface), 0 0 6px var(--bg-surface);
     white-space: nowrap;
-    animation: floatUp 1s ease-out forwards;
+    animation: floatUp 1.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
-.float-score.bonus { color: #f59e0b; font-size: 1.3rem; }
+.float-score.bonus { color: #f59e0b; font-size: 1.32rem; }
+.float-combo-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #ffffff;
+    text-shadow: none;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+    letter-spacing: 0.2px;
+}
 @keyframes floatUp {
     0%   { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
     15%  { opacity: 1; transform: translate(-50%, -8px) scale(1.15); }

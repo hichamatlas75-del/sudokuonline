@@ -37,6 +37,7 @@ class SudokuApp {
         this.mistakes = 0;
         this.maxMistakes = 3;
         this.score = 0;
+        this.streak = 0;
         this.hintsRemaining = 3;
         this.elapsedSeconds = 0;
         this.isPaused = false;
@@ -320,6 +321,7 @@ class SudokuApp {
 
         this.mistakes = 0;
         this.score = 0;
+        this.streak = 0;
         this.hintsRemaining = 3;
         this.elapsedSeconds = 0;
         this.isPaused = false;
@@ -327,7 +329,7 @@ class SudokuApp {
         this.isWon = false;
         this.lockedDigit = null;
         this.completedUnits = new Set();
-        this. updateCompletedUnitsSnapshot(false);
+        this.updateCompletedUnitsSnapshot(false);
 
         this.hintBanner.classList.add('hidden');
 
@@ -361,6 +363,7 @@ class SudokuApp {
         this.history = [];
         this.mistakes = 0;
         this.score = 0;
+        this.streak = 0;
         this.hintsRemaining = 3;
         this.elapsedSeconds = 0;
         this.isPaused = false;
@@ -408,16 +411,13 @@ class SudokuApp {
         if (this.isFastMode) {
             if (this.lockedDigit === num) {
                 this.lockedDigit = null;
+                this.audio.playToggle(false);
             } else {
                 this.lockedDigit = num;
-                // Si la case actuellement sélectionnée est modifiable et vide, la remplir aussi
-                const { row, col } = this.selectedCell;
-                if (this.initialBoard[row][col] === 0 && this.board[row][col] === 0) {
-                    this.placeNumberInCell(row, col, num);
-                    return;
-                }
+                this.audio.playToggle(true);
             }
             this.render();
+            this.saveGameState();
             return;
         }
 
@@ -451,6 +451,7 @@ class SudokuApp {
                 cellNotes.splice(idx, 1);
             }
             this.audio.playNote(idx === -1);
+            this.haptic(8);
             this.render();
             this.saveGameState();
             return;
@@ -475,10 +476,13 @@ class SudokuApp {
         const isCorrect = (num === this.solution[row][col]);
 
         if (isCorrect) {
-            // Gain de points façon Sudoku.com (base * multiplicateur * facteur vitesse)
+            this.streak += 1;
+            // Gain de points façon Sudoku.com (base * multiplicateur * facteur vitesse + bonus de série)
             const speedBonus = Math.max(10, 60 - Math.floor(this.elapsedSeconds / 15));
-            this.score += speedBonus * this.multiplier;
-            this.audio.playPlace(num);
+            const streakBonus = this.streak >= 2 ? Math.min(5, this.streak - 1) * 15 : 0;
+            this.score += (speedBonus + streakBonus) * this.multiplier;
+            this.audio.playPlace(num, this.streak);
+            this.haptic(10);
 
             // Suppression automatique des notes dans la même ligne, colonne et bloc 3x3
             if (this.settings.autoRemoveNotes) {
@@ -498,6 +502,7 @@ class SudokuApp {
                 this.lockedDigit = null;
             }
         } else {
+            this.streak = 0;
             // Erreur détectée
             if (this.settings.autoCheckErrors || this.hasConflict(row, col, num)) {
                 this.mistakes += 1;
@@ -519,7 +524,7 @@ class SudokuApp {
                 }
             } else {
                 // Chiffre faux mais non signalé (vérification auto désactivée) : retour neutre
-                this.audio.playPlace(num);
+                this.audio.playPlace(num, 1);
             }
         }
 
@@ -527,9 +532,28 @@ class SudokuApp {
 
         // Retours visuels après le rendu (les classes anim-* survivent aux render())
         if (isCorrect) {
+            const targetCellEl = this.cellElements[row][col];
             this.animateCell(row, col, 'pop');
+            SudokuFX.ripple(targetCellEl, {
+                color: unitsDone > 0 ? '#f59e0b' : '#3b82f6',
+                maxRadius: unitsDone > 0 ? 58 : 42
+            });
+            if (unitsDone > 0 || this.streak >= 3) {
+                SudokuFX.burst(targetCellEl, {
+                    count: unitsDone > 0 ? 18 : 10,
+                    speed: unitsDone > 0 ? 4.8 : 3.5
+                });
+            }
             const gained = this.score - scoreBefore;
-            SudokuFX.floatText(this.boardWrapper, this.cellElements[row][col], `+${gained}`, unitsDone > 0 ? 'bonus' : '');
+            let badgeText = '';
+            if (unitsDone > 0 && this.streak >= 2) {
+                badgeText = `✨ Unité • 🔥×${this.streak}`;
+            } else if (unitsDone > 0) {
+                badgeText = '✨ Unité !';
+            } else if (this.streak >= 2) {
+                badgeText = `🔥 ×${this.streak}`;
+            }
+            SudokuFX.floatText(this.boardWrapper, targetCellEl, `+${gained}`, unitsDone > 0 ? 'bonus' : '', badgeText);
             this.bump(this.scoreDisplay, 'pulse-score');
         } else if (!errorCounted) {
             this.animateCell(row, col, 'pop');
@@ -583,7 +607,8 @@ class SudokuApp {
         this.history.push({
             board: SudokuEngine.cloneBoard(this.board),
             notes: this.notes.map(row => row.map(cell => [...cell])),
-            score: this.score
+            score: this.score,
+            streak: this.streak
         });
         if (this.history.length > 60) {
             this.history.shift();
@@ -595,13 +620,18 @@ class SudokuApp {
      */
     undo() {
         if (this.isPaused || this.isGameOver || this.isWon) return;
-        if (this.history.length === 0) return;
+        if (this.history.length === 0) {
+            this.audio.playBlocked();
+            return;
+        }
 
         const prev = this.history.pop();
         this.board = prev.board;
         this.notes = prev.notes;
         this.score = prev.score;
+        this.streak = prev.streak ?? 0;
 
+        this.updateCompletedUnitsSnapshot(false);
         this.audio.playUndo();
         this.render();
         this.saveGameState();
@@ -657,15 +687,19 @@ class SudokuApp {
     useSmartHint() {
         if (this.isPaused || this.isGameOver || this.isWon) return;
 
+        if (this.hintsRemaining <= 0) {
+            this.audio.playBlocked();
+            this.haptic([20, 30, 20]);
+            this.bump(this.btnHint, 'anim-shake');
+            return;
+        }
+
         const { row, col } = this.selectedCell;
         const hint = SudokuEngine.getSmartHint(this.board, this.solution, row, col);
         if (!hint) return;
 
         this.pushHistory();
-
-        if (this.hintsRemaining > 0) {
-            this.hintsRemaining -= 1;
-        }
+        this.hintsRemaining -= 1;
 
         this.selectedCell = { row: hint.row, col: hint.col };
         this.board[hint.row][hint.col] = hint.value;
@@ -683,6 +717,7 @@ class SudokuApp {
         const unitsDone = this.updateCompletedUnitsSnapshot(true);
         this.audio.playHint();
         if (unitsDone > 0) this.audio.playUnitComplete(unitsDone, 0.45);
+        if (this.getRemainingCount(hint.value) === 0) this.celebrateDigit(hint.value);
         this.bump(this.hintsBadge, 'pulse-score');
         this.render();
 
@@ -691,6 +726,8 @@ class SudokuApp {
         targetEl.classList.remove('cell-hint-flash');
         void targetEl.offsetWidth;
         targetEl.classList.add('cell-hint-flash');
+        SudokuFX.ripple(targetEl, { color: '#10b981', maxRadius: 56 });
+        SudokuFX.burst(targetEl, { count: 14, colors: ['#10b981', '#34d399', '#fbbf24'] });
 
         this.saveGameState();
         this.checkVictory();
@@ -900,7 +937,9 @@ class SudokuApp {
         this.notesBadge.textContent = this.isNotesMode ? 'ON' : 'OFF';
         this.notesBadge.className = `status-badge ${this.isNotesMode ? 'on' : 'off'}`;
 
-        this.hintsBadge.textContent = this.hintsRemaining > 0 ? `${this.hintsRemaining}` : '+';
+        this.hintsBadge.textContent = `${this.hintsRemaining}`;
+        this.hintsBadge.className = `status-badge ${this.hintsRemaining > 0 ? 'count' : 'off'}`;
+        this.btnHint.classList.toggle('disabled-action', this.hintsRemaining <= 0);
 
         this.btnFastMode.classList.toggle('active', this.isFastMode);
         this.fastModeState.textContent = this.isFastMode ? 'ON' : 'OFF';
@@ -1014,6 +1053,9 @@ class SudokuApp {
         if (e.key >= '1' && e.key <= '9') {
             e.preventDefault();
             this.onNumberInput(parseInt(e.key, 10));
+        } else if ((e.key === 'Enter' || e.key === ' ') && this.isFastMode && this.lockedDigit !== null) {
+            e.preventDefault();
+            this.placeNumberInCell(row, col, this.lockedDigit);
         } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
             e.preventDefault();
             this.eraseSelectedCell();
@@ -1106,6 +1148,10 @@ class SudokuApp {
         const btn = Array.from(this.numpadBtns).find(b => parseInt(b.dataset.num, 10) === num);
         if (btn) {
             this.bump(btn, 'anim-digit-done');
+            SudokuFX.burst(btn, {
+                count: 16,
+                colors: ['#22c55e', '#38bdf8', '#facc15', '#a855f7']
+            });
         }
     }
 
@@ -1242,8 +1288,13 @@ class SudokuApp {
             history: this.history,
             mistakes: this.mistakes,
             score: this.score,
+            streak: this.streak,
             hintsRemaining: this.hintsRemaining,
-            elapsedSeconds: this.elapsedSeconds
+            elapsedSeconds: this.elapsedSeconds,
+            selectedCell: this.selectedCell,
+            isNotesMode: this.isNotesMode,
+            isFastMode: this.isFastMode,
+            lockedDigit: this.lockedDigit
         };
         try {
             localStorage.setItem(SudokuApp.STORAGE_KEY_GAME, JSON.stringify(payload));
@@ -1266,8 +1317,25 @@ class SudokuApp {
             this.history = data.history || [];
             this.mistakes = data.mistakes || 0;
             this.score = data.score || 0;
+            this.streak = data.streak || 0;
             this.hintsRemaining = data.hintsRemaining ?? 3;
             this.elapsedSeconds = data.elapsedSeconds || 0;
+            this.isNotesMode = !!data.isNotesMode;
+            this.isFastMode = !!data.isFastMode;
+            this.lockedDigit = data.lockedDigit ?? null;
+
+            if (data.selectedCell && typeof data.selectedCell.row === 'number' && typeof data.selectedCell.col === 'number') {
+                this.selectedCell = data.selectedCell;
+            } else {
+                outer: for (let r = 0; r < 9; r++) {
+                    for (let c = 0; c < 9; c++) {
+                        if (this.board[r][c] === 0) {
+                            this.selectedCell = { row: r, col: c };
+                            break outer;
+                        }
+                    }
+                }
+            }
 
             this.updateCompletedUnitsSnapshot(false);
             this.startTimer();
