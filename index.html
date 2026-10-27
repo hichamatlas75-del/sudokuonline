@@ -57,12 +57,12 @@
                     <button class="theme-btn active" data-theme-target="light" title="Thème Clair">☀️</button>
                     <button class="theme-btn" data-theme-target="sepia" title="Thème Sépia">📜</button>
                     <button class="theme-btn" data-theme-target="dark" title="Thème Sombre">🌙</button>
-                    <button class="theme-btn" data-theme-target="oled" title="Thème OLED Noir Pur">🌑</button>
-                    <button class="theme-btn" data-theme-target="emerald" title="Thème Forêt Zen (Niv. 2)">🌿</button>
-                    <button class="theme-btn" data-theme-target="sakura" title="Thème Sakura (Niv. 3)">🌸</button>
-                    <button class="theme-btn" data-theme-target="ocean" title="Thème Abysses (Niv. 4)">🌊</button>
-                    <button class="theme-btn" data-theme-target="cyber" title="Thème Cyberpunk (Niv. 5)">⚡</button>
-                    <button class="theme-btn" data-theme-target="royal" title="Thème Prestige Or & Onyx (Niv. 6)">👑</button>
+                    <button class="theme-btn" data-theme-target="oled" title="Thème OLED Pur (3 000 pts)">🌑</button>
+                    <button class="theme-btn" data-theme-target="emerald" title="Thème Forêt Zen (8 000 pts)">🌿</button>
+                    <button class="theme-btn" data-theme-target="sakura" title="Thème Sakura (15 000 pts)">🌸</button>
+                    <button class="theme-btn" data-theme-target="ocean" title="Thème Abysses (25 000 pts)">🌊</button>
+                    <button class="theme-btn" data-theme-target="cyber" title="Thème Cyberpunk (40 000 pts)">⚡</button>
+                    <button class="theme-btn" data-theme-target="royal" title="Thème Prestige Or & Onyx (60 000 pts)">👑</button>
                 </div>
 
                 <button id="btn-install" class="nav-icon-btn install-pill-btn" title="Installer l'application">
@@ -449,21 +449,21 @@
                             </div>
                         </div>
 
-                        <span class="profile-input-label">Choisir un avatar (certains se débloquent par niveau)</span>
+                        <span class="profile-input-label">Choisir un avatar (déblocage par score cumulé)</span>
                         <div class="avatar-picker-grid" id="avatar-picker-grid">
-                            <button type="button" class="avatar-choice active" data-avatar="🧠" data-req-level="1">🧠</button>
-                            <button type="button" class="avatar-choice" data-avatar="🦊" data-req-level="1">🦊</button>
-                            <button type="button" class="avatar-choice" data-avatar="🦉" data-req-level="1">🦉</button>
-                            <button type="button" class="avatar-choice" data-avatar="🐯" data-req-level="1">🐯</button>
-                            <button type="button" class="avatar-choice" data-avatar="🐼" data-req-level="2" title="Débloqué au Niv. 2">🐼</button>
-                            <button type="button" class="avatar-choice" data-avatar="🦄" data-req-level="3" title="Débloqué au Niv. 3">🦄</button>
-                            <button type="button" class="avatar-choice" data-avatar="🧙‍♂️" data-req-level="4" title="Débloqué au Niv. 4">🧙‍♂️</button>
-                            <button type="button" class="avatar-choice" data-avatar="🤖" data-req-level="5" title="Débloqué au Niv. 5">🤖</button>
-                            <button type="button" class="avatar-choice" data-avatar="👑" data-req-level="1">👑</button>
-                            <button type="button" class="avatar-choice" data-avatar="🚀" data-req-level="1">🚀</button>
-                            <button type="button" class="avatar-choice" data-avatar="⚡" data-req-level="1">⚡</button>
-                            <button type="button" class="avatar-choice" data-avatar="🐉" data-req-level="1">🐉</button>
-                            <button type="button" class="avatar-choice" data-avatar="💎" data-req-level="6" title="Débloqué au Niv. 6">💎</button>
+                            <button type="button" class="avatar-choice active" data-avatar="🧠" data-req-score="0">🧠</button>
+                            <button type="button" class="avatar-choice" data-avatar="🦊" data-req-score="0">🦊</button>
+                            <button type="button" class="avatar-choice" data-avatar="🦉" data-req-score="0">🦉</button>
+                            <button type="button" class="avatar-choice" data-avatar="🐯" data-req-score="0">🐯</button>
+                            <button type="button" class="avatar-choice" data-avatar="👑" data-req-score="0">👑</button>
+                            <button type="button" class="avatar-choice" data-avatar="🚀" data-req-score="0">🚀</button>
+                            <button type="button" class="avatar-choice" data-avatar="⚡" data-req-score="0">⚡</button>
+                            <button type="button" class="avatar-choice" data-avatar="🐉" data-req-score="0">🐉</button>
+                            <button type="button" class="avatar-choice avatar-locked" data-avatar="🐼" data-req-score="3000" title="Débloqué à 3 000 pts">🐼</button>
+                            <button type="button" class="avatar-choice avatar-locked" data-avatar="🦄" data-req-score="8000" title="Débloqué à 8 000 pts">🦄</button>
+                            <button type="button" class="avatar-choice avatar-locked" data-avatar="🧙‍♂️" data-req-score="15000" title="Débloqué à 15 000 pts">🧙‍♂️</button>
+                            <button type="button" class="avatar-choice avatar-locked" data-avatar="🤖" data-req-score="25000" title="Débloqué à 25 000 pts">🤖</button>
+                            <button type="button" class="avatar-choice avatar-locked" data-avatar="💎" data-req-score="60000" title="Débloqué à 60 000 pts">💎</button>
                         </div>
                     </div>
                 </div>
@@ -533,17 +533,20 @@
 
                 <!-- Section Apparence / Thème (très pratique sur mobile) -->
                 <div class="settings-section">
-                    <span class="settings-section-title">Apparence &amp; Thèmes Récompenses</span>
+                    <div class="settings-section-header-row">
+                        <span class="settings-section-title">Apparence &amp; Thèmes Récompenses</span>
+                        <span class="settings-score-pill" id="settings-reward-score">🏆 0 pts</span>
+                    </div>
                     <div class="settings-theme-grid" role="group" aria-label="Thème visuel">
-                        <button type="button" class="theme-btn settings-theme-choice active" data-theme-target="light"><span>☀️ Clair</span><small class="theme-lock-tag">Base</small></button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="sepia"><span>📜 Sépia</span><small class="theme-lock-tag">Base</small></button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="dark"><span>🌙 Sombre</span><small class="theme-lock-tag">Base</small></button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="oled"><span>🌑 OLED Pur</span><small class="theme-lock-tag">Base</small></button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="emerald"><span>🌿 Forêt Zen</span><small class="theme-lock-tag" data-theme-badge="emerald">Niv. 2</small></button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="sakura"><span>🌸 Sakura</span><small class="theme-lock-tag" data-theme-badge="sakura">Niv. 3</small></button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="ocean"><span>🌊 Abysses</span><small class="theme-lock-tag" data-theme-badge="ocean">Niv. 4</small></button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="cyber"><span>⚡ Cyberpunk</span><small class="theme-lock-tag" data-theme-badge="cyber">Niv. 5</small></button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="royal"><span>👑 Or &amp; Onyx</span><small class="theme-lock-tag" data-theme-badge="royal">Niv. 6</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice active" data-theme-target="light"><span>☀️ Clair</span><small class="theme-lock-tag" data-theme-badge="light">✓ Ouvert</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="sepia"><span>📜 Sépia</span><small class="theme-lock-tag" data-theme-badge="sepia">✓ Ouvert</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="dark"><span>🌙 Sombre</span><small class="theme-lock-tag" data-theme-badge="dark">✓ Ouvert</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice theme-locked" data-theme-target="oled"><span>🌑 OLED Pur</span><small class="theme-lock-tag" data-theme-badge="oled">🔒 3 000 pts</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice theme-locked" data-theme-target="emerald"><span>🌿 Forêt Zen</span><small class="theme-lock-tag" data-theme-badge="emerald">🔒 8 000 pts</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice theme-locked" data-theme-target="sakura"><span>🌸 Sakura</span><small class="theme-lock-tag" data-theme-badge="sakura">🔒 15 000 pts</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice theme-locked" data-theme-target="ocean"><span>🌊 Abysses</span><small class="theme-lock-tag" data-theme-badge="ocean">🔒 25 000 pts</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice theme-locked" data-theme-target="cyber"><span>⚡ Cyberpunk</span><small class="theme-lock-tag" data-theme-badge="cyber">🔒 40 000 pts</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice theme-locked" data-theme-target="royal"><span>👑 Or &amp; Onyx</span><small class="theme-lock-tag" data-theme-badge="royal">🔒 60 000 pts</small></button>
                     </div>
                 </div>
 
@@ -560,21 +563,21 @@
                         </label>
 
                         <div class="sound-pack-grid" id="sound-pack-grid" role="group" aria-label="Ambiance sonore">
-                            <button type="button" class="sound-pack-btn active" data-sound-pack="marimba" data-req-level="1">
+                            <button type="button" class="sound-pack-btn active" data-sound-pack="marimba">
                                 <span>🪵 Bois &amp; Kalimba</span>
-                                <small class="theme-lock-tag">Base</small>
+                                <small class="theme-lock-tag" data-pack-badge="marimba">✓ Ouvert</small>
                             </button>
-                            <button type="button" class="sound-pack-btn" data-sound-pack="piano" data-req-level="1">
+                            <button type="button" class="sound-pack-btn" data-sound-pack="piano">
                                 <span>🎹 Piano Doux</span>
-                                <small class="theme-lock-tag">Base</small>
+                                <small class="theme-lock-tag" data-pack-badge="piano">✓ Ouvert</small>
                             </button>
-                            <button type="button" class="sound-pack-btn" data-sound-pack="crystal" data-req-level="2">
+                            <button type="button" class="sound-pack-btn pack-locked" data-sound-pack="crystal">
                                 <span>🎐 Cristal Zen</span>
-                                <small class="theme-lock-tag" data-pack-badge="crystal">Niv. 2</small>
+                                <small class="theme-lock-tag" data-pack-badge="crystal">🔒 8 000 pts</small>
                             </button>
-                            <button type="button" class="sound-pack-btn" data-sound-pack="retro" data-req-level="4">
+                            <button type="button" class="sound-pack-btn pack-locked" data-sound-pack="retro">
                                 <span>🕹️ Arcade 8-Bit</span>
-                                <small class="theme-lock-tag" data-pack-badge="retro">Niv. 4</small>
+                                <small class="theme-lock-tag" data-pack-badge="retro">🔒 25 000 pts</small>
                             </button>
                         </div>
 

@@ -18,25 +18,25 @@ class SudokuApp {
         pulseHint: 'cell-hint-flash'
     };
 
-    // Thèmes visuels disponibles immédiatement
+    // Thèmes visuels et scores de récompense requis (🔒 verrouillés tant que le score n'est pas atteint)
     static THEMES_META = {
-        light:   { label: '☀️ Clair',       reqLevel: 1, tag: 'Classique' },
-        sepia:   { label: '📜 Sépia',       reqLevel: 1, tag: 'Lecture' },
-        dark:    { label: '🌙 Sombre',      reqLevel: 1, tag: 'Nuit' },
-        oled:    { label: '🌑 OLED Pur',    reqLevel: 1, tag: 'AMOLED' },
-        emerald: { label: '🌿 Forêt Zen',   reqLevel: 1, tag: 'Matcha' },
-        sakura:  { label: '🌸 Sakura',      reqLevel: 1, tag: 'Pastel' },
-        ocean:   { label: '🌊 Abysses',     reqLevel: 1, tag: 'Océan' },
-        cyber:   { label: '⚡ Cyberpunk',   reqLevel: 1, tag: 'Néon' },
-        royal:   { label: '👑 Or & Onyx',   reqLevel: 1, tag: 'Prestige' }
+        light:   { label: '☀️ Clair',       reqScore: 0,     tag: 'Classique' },
+        sepia:   { label: '📜 Sépia',       reqScore: 0,     tag: 'Lecture' },
+        dark:    { label: '🌙 Sombre',      reqScore: 0,     tag: 'Nuit' },
+        oled:    { label: '🌑 OLED Pur',    reqScore: 3000,  tag: 'AMOLED' },
+        emerald: { label: '🌿 Forêt Zen',   reqScore: 8000,  tag: 'Matcha' },
+        sakura:  { label: '🌸 Sakura',      reqScore: 15000, tag: 'Pastel' },
+        ocean:   { label: '🌊 Abysses',     reqScore: 25000, tag: 'Océan' },
+        cyber:   { label: '⚡ Cyberpunk',   reqScore: 40000, tag: 'Néon' },
+        royal:   { label: '👑 Or & Onyx',   reqScore: 60000, tag: 'Prestige' }
     };
 
-    // Packs sonores disponibles immédiatement
+    // Packs sonores et scores de récompense requis
     static SOUND_PACKS_META = {
-        marimba: { label: '🪵 Bois & Kalimba', reqLevel: 1 },
-        piano:   { label: '🎹 Piano Doux',     reqLevel: 1 },
-        crystal: { label: '🎐 Cristal Zen',    reqLevel: 1 },
-        retro:   { label: '🕹️ Arcade 8-Bit',   reqLevel: 1 }
+        marimba: { label: '🪵 Bois & Kalimba', reqScore: 0 },
+        piano:   { label: '🎹 Piano Doux',     reqScore: 0 },
+        crystal: { label: '🎐 Cristal Zen',    reqScore: 8000 },
+        retro:   { label: '🕹️ Arcade 8-Bit',   reqScore: 25000 }
     };
 
     // Paliers de Niveau (XP) & Récompenses associées
@@ -1018,9 +1018,24 @@ class SudokuApp {
         }
         this.saveStats();
 
-        // --- Calcul Récompenses : Série Quotidienne, XP, Trophées & Passage de Niveau ---
+        // --- Calcul Récompenses : Score cumulé, Série Quotidienne, XP, Trophées & Passage de Niveau ---
         const rankBefore = this.getProfileRankInfo();
+        const rewardScoreBefore = this.getRewardScore();
+        this.profile.rewardScore = rewardScoreBefore + Math.max(0, Number(this.score) || 0);
+        const rewardScoreAfter = this.getRewardScore();
         this.updateDailyStreakOnWin();
+
+        const newlyUnlockedScoreItems = [];
+        Object.entries(SudokuApp.THEMES_META).forEach(([key, meta]) => {
+            if (meta.reqScore > 0 && rewardScoreBefore < meta.reqScore && rewardScoreAfter >= meta.reqScore) {
+                newlyUnlockedScoreItems.push({ icon: '🎨', title: `Thème débloqué : ${meta.label}`, desc: `Palier ${meta.reqScore.toLocaleString('fr-FR')} pts franchi !`, pill: `🎨 ${meta.label}` });
+            }
+        });
+        Object.entries(SudokuApp.SOUND_PACKS_META).forEach(([key, meta]) => {
+            if (meta.reqScore > 0 && rewardScoreBefore < meta.reqScore && rewardScoreAfter >= meta.reqScore) {
+                newlyUnlockedScoreItems.push({ icon: '🔊', title: `Pack sonore débloqué : ${meta.label}`, desc: `Palier ${meta.reqScore.toLocaleString('fr-FR')} pts franchi !`, pill: `🔊 ${meta.label}` });
+            }
+        });
 
         const baseXpByDiff = { easy: 50, medium: 90, hard: 140, expert: 200, master: 280, extreme: 400 };
         let earnedXp = baseXpByDiff[this.difficulty] || 50;
@@ -1049,7 +1064,10 @@ class SudokuApp {
             this.pushLiveSyncNow(true);
         }
 
-        // Notifications de déblocage (Trophées & Passage de niveau)
+        // Notifications de déblocage (Thèmes/Sons par score, Trophées & Passage de niveau)
+        newlyUnlockedScoreItems.forEach(item => {
+            this.enqueueRewardToast(item.icon, item.title, item.desc);
+        });
         newlyUnlockedTrophies.forEach(t => {
             this.enqueueRewardToast(t.icon, `Trophée débloqué : ${t.title}`, `${t.desc} (+${t.xp} XP)`);
         });
@@ -1071,11 +1089,17 @@ class SudokuApp {
         const vicXpGained = document.getElementById('vic-xp-gained');
         const vicXpFill = document.getElementById('vic-xp-fill');
         const vicUnlockedList = document.getElementById('vic-unlocked-list');
-        if (vicRankLabel) vicRankLabel.textContent = `Niv. ${rankAfter.level} • ${rankAfter.title} (🔥 ${streakCount}j)`;
+        if (vicRankLabel) vicRankLabel.textContent = `Niv. ${rankAfter.level} • ${rankAfter.title} (🔥 ${streakCount}j • 🏆 ${rewardScoreAfter.toLocaleString('fr-FR')} pts)`;
         if (vicXpGained) vicXpGained.textContent = `+${totalGainedXp} XP`;
         if (vicXpFill) vicXpFill.style.width = `${rankAfter.progressPct}%`;
         if (vicUnlockedList) {
             vicUnlockedList.innerHTML = '';
+            newlyUnlockedScoreItems.forEach(item => {
+                const pill = document.createElement('span');
+                pill.className = 'victory-unlock-pill';
+                pill.textContent = `🔓 ${item.pill} débloqué !`;
+                vicUnlockedList.appendChild(pill);
+            });
             if (leveledUp) {
                 const pill = document.createElement('span');
                 pill.className = 'victory-unlock-pill';
@@ -1468,14 +1492,25 @@ class SudokuApp {
     /**
      * Thèmes, Packs Sonores, Déblocables & Modales
      */
+    getRewardScore() {
+        return Math.max(0, Number(this.profile && this.profile.rewardScore) || 0);
+    }
+
     applyTheme(themeName, userInitiated = true) {
         const meta = SudokuApp.THEMES_META[themeName] || SudokuApp.THEMES_META.light;
-        const rank = this.getProfileRankInfo();
-        if (meta.reqLevel > rank.level) {
+        const curScore = this.getRewardScore();
+        const reqScore = meta.reqScore || 0;
+        if (reqScore > curScore) {
             if (userInitiated) {
                 this.audio.playBlocked();
                 this.haptic([20, 30, 20]);
-                this.enqueueRewardToast('🔒', `Thème ${meta.label} verrouillé`, `Atteignez le Niveau ${meta.reqLevel} pour débloquer ce thème !`, false);
+                const missing = (reqScore - curScore).toLocaleString('fr-FR');
+                this.enqueueRewardToast(
+                    '🔒',
+                    `Thème ${meta.label} verrouillé`,
+                    `Score requis : ${reqScore.toLocaleString('fr-FR')} pts (Il vous manque ${missing} pts)`,
+                    false
+                );
             } else {
                 themeName = 'light';
             }
@@ -1497,14 +1532,22 @@ class SudokuApp {
 
     applySoundPack(packName, userInitiated = true) {
         const meta = SudokuApp.SOUND_PACKS_META[packName] || SudokuApp.SOUND_PACKS_META.marimba;
-        const rank = this.getProfileRankInfo();
-        if (meta.reqLevel > rank.level) {
+        const curScore = this.getRewardScore();
+        const reqScore = meta.reqScore || 0;
+        if (reqScore > curScore) {
             if (userInitiated) {
                 this.audio.playBlocked();
                 this.haptic([20, 30, 20]);
-                this.enqueueRewardToast('🔒', `Pack ${meta.label} verrouillé`, `Atteignez le Niveau ${meta.reqLevel} pour débloquer ce pack sonore !`, false);
+                const missing = (reqScore - curScore).toLocaleString('fr-FR');
+                this.enqueueRewardToast(
+                    '🔒',
+                    `Pack ${meta.label} verrouillé`,
+                    `Score requis : ${reqScore.toLocaleString('fr-FR')} pts (Il vous manque ${missing} pts)`,
+                    false
+                );
+                return;
             }
-            return;
+            packName = 'marimba';
         }
 
         this.settings.soundPack = packName;
@@ -1518,18 +1561,27 @@ class SudokuApp {
     }
 
     syncUnlockablesUI() {
-        const rank = this.getProfileRankInfo();
-        const curLevel = rank.level;
+        const curScore = this.getRewardScore();
+
+        const scorePill = document.getElementById('settings-reward-score');
+        if (scorePill) {
+            scorePill.textContent = `🏆 ${curScore.toLocaleString('fr-FR')} pts`;
+        }
 
         // Thèmes
         this.themeBtns.forEach(btn => {
             const key = btn.dataset.themeTarget;
             const meta = SudokuApp.THEMES_META[key];
-            const locked = meta && meta.reqLevel > curLevel;
+            const reqScore = meta ? (meta.reqScore || 0) : 0;
+            const locked = reqScore > curScore;
             btn.classList.toggle('theme-locked', Boolean(locked));
             const badge = btn.querySelector(`[data-theme-badge="${key}"]`);
             if (badge && meta) {
-                badge.textContent = locked ? `🔒 Niv. ${meta.reqLevel}` : (meta.tag || '✓');
+                if (locked) {
+                    badge.textContent = `🔒 ${reqScore.toLocaleString('fr-FR')} pts`;
+                } else {
+                    badge.textContent = reqScore > 0 ? '🔓 Débloqué' : (meta.tag || '✓');
+                }
             }
         });
 
@@ -1538,20 +1590,30 @@ class SudokuApp {
         document.querySelectorAll('.sound-pack-btn').forEach(btn => {
             const pack = btn.dataset.soundPack;
             const meta = SudokuApp.SOUND_PACKS_META[pack];
-            const req = meta ? meta.reqLevel : 1;
-            const locked = req > curLevel;
+            const reqScore = meta ? (meta.reqScore || 0) : 0;
+            const locked = reqScore > curScore;
             btn.classList.toggle('pack-locked', locked);
-            btn.classList.toggle('active', pack === currentPack);
+            btn.classList.toggle('active', pack === currentPack && !locked);
             const badge = btn.querySelector(`[data-pack-badge="${pack}"]`);
             if (badge) {
-                badge.textContent = locked ? `🔒 Niv. ${req}` : '✓ Actif';
+                if (locked) {
+                    badge.textContent = `🔒 ${reqScore.toLocaleString('fr-FR')} pts`;
+                } else {
+                    badge.textContent = pack === currentPack ? '✓ Actif' : '🔓 Disponible';
+                }
             }
         });
 
         // Avatars
         document.querySelectorAll('.avatar-choice').forEach(btn => {
-            const req = parseInt(btn.dataset.reqLevel || '1', 10);
-            btn.classList.toggle('avatar-locked', req > curLevel);
+            const reqScore = parseInt(btn.dataset.reqScore || '0', 10);
+            const locked = reqScore > curScore;
+            btn.classList.toggle('avatar-locked', locked);
+            if (locked) {
+                btn.title = `🔒 Verrouillé — ${reqScore.toLocaleString('fr-FR')} pts requis`;
+            } else {
+                btn.title = reqScore > 0 ? `🔓 Débloqué (${reqScore.toLocaleString('fr-FR')} pts)` : 'Disponible';
+            }
         });
     }
 
@@ -1836,6 +1898,7 @@ class SudokuApp {
             pin: '1234',
             avatar: '🧠',
             xp: 0,
+            rewardScore: 0,
             trophies: [],
             dailyStreak: { count: 0, lastPlayedDate: null, bestStreak: 0 },
             autoCloudSync: true,
@@ -1847,6 +1910,7 @@ class SudokuApp {
             if (!merged.name || merged.name === 'Joueur') merged.name = 'hicham';
             if (!/^[0-9]{4}$/.test(merged.pin || '')) merged.pin = '1234';
             if (!Array.isArray(merged.trophies)) merged.trophies = [];
+            if (typeof merged.rewardScore !== 'number' || merged.rewardScore < 0) merged.rewardScore = 0;
             if (!merged.dailyStreak || typeof merged.dailyStreak !== 'object') {
                 merged.dailyStreak = { count: 0, lastPlayedDate: null, bestStreak: 0 };
             }
@@ -2116,12 +2180,18 @@ class SudokuApp {
 
         document.querySelectorAll('.avatar-choice').forEach(btn => {
             btn.addEventListener('click', () => {
-                const req = parseInt(btn.dataset.reqLevel || '1', 10);
-                const rank = this.getProfileRankInfo();
-                if (req > rank.level) {
+                const reqScore = parseInt(btn.dataset.reqScore || '0', 10);
+                const curScore = this.getRewardScore();
+                if (reqScore > curScore) {
                     this.audio.playBlocked();
                     this.haptic([20, 30, 20]);
-                    this.enqueueRewardToast('🔒', `Avatar ${btn.dataset.avatar} verrouillé`, `Atteignez le Niveau ${req} pour débloquer cet avatar !`, false);
+                    const missing = (reqScore - curScore).toLocaleString('fr-FR');
+                    this.enqueueRewardToast(
+                        '🔒',
+                        `Avatar ${btn.dataset.avatar} verrouillé`,
+                        `Score requis : ${reqScore.toLocaleString('fr-FR')} pts (Il vous manque ${missing} pts)`,
+                        false
+                    );
                     return;
                 }
                 this.profile.avatar = btn.dataset.avatar;
@@ -2351,6 +2421,9 @@ class SudokuApp {
                 if (typeof bundle.profile.xp === 'number') {
                     this.profile.xp = Math.max(this.profile.xp || 0, bundle.profile.xp);
                 }
+                if (typeof bundle.profile.rewardScore === 'number') {
+                    this.profile.rewardScore = Math.max(this.profile.rewardScore || 0, bundle.profile.rewardScore);
+                }
                 if (Array.isArray(bundle.profile.trophies)) {
                     this.profile.trophies = [...new Set([...(this.profile.trophies || []), ...bundle.profile.trophies])];
                 }
@@ -2473,6 +2546,7 @@ class SudokuApp {
                 name: this.profile.name,
                 avatar: this.profile.avatar,
                 xp: this.profile.xp || 0,
+                rewardScore: this.profile.rewardScore || 0,
                 trophies: this.profile.trophies || [],
                 dailyStreak: this.profile.dailyStreak || { count: 0, lastPlayedDate: null, bestStreak: 0 }
             },

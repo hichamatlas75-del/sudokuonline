@@ -1177,6 +1177,22 @@ body {
     padding-left: 4px;
 }
 
+.settings-section-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.settings-score-pill {
+    background: var(--accent-soft);
+    color: var(--accent-primary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--board-border-cell);
+}
+
 .settings-theme-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1192,6 +1208,7 @@ body {
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-primary);
+    background: var(--bg-surface);
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -1201,17 +1218,51 @@ body {
 }
 .settings-theme-choice.active {
     border-color: var(--accent-primary);
+    box-shadow: var(--shadow-sm);
 }
 .settings-theme-choice.theme-locked,
-.theme-btn.theme-locked,
-.avatar-choice.avatar-locked,
 .sound-pack-btn.pack-locked {
-    opacity: 0.55;
+    opacity: 0.62;
+    border: 1.5px dashed var(--board-border-cell);
+    background: transparent;
+}
+.theme-switcher .theme-btn {
+    position: relative;
+}
+.theme-switcher .theme-btn.theme-locked {
+    opacity: 0.5;
+}
+.theme-switcher .theme-btn.theme-locked::after {
+    content: "🔒";
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 0.52rem;
+    line-height: 1;
+}
+.avatar-choice {
+    position: relative;
+}
+.avatar-choice.avatar-locked {
+    opacity: 0.5;
+    border: 1.5px dashed var(--board-border-cell);
+}
+.avatar-choice.avatar-locked::after {
+    content: "🔒";
+    position: absolute;
+    bottom: 1px;
+    right: 2px;
+    font-size: 0.58rem;
+    line-height: 1;
 }
 .theme-lock-tag {
     font-size: 0.62rem;
     font-weight: 700;
     color: var(--text-secondary);
+}
+.settings-theme-choice:not(.theme-locked) .theme-lock-tag,
+.sound-pack-btn:not(.pack-locked) .theme-lock-tag {
+    color: #16a34a;
 }
 
 /* Sélecteur de Pack Sonore */
