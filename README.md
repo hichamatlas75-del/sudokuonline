@@ -14,5 +14,12 @@ Application Web de Sudoku gratuite en ligne inspirée de **Sudoku.com**, dévelo
 - **3 Thèmes visuels** : Clair, Sépia et Sombre.
 - **Sauvegarde automatique** de la partie en cours et **Statistiques détaillées** par niveau dans `localStorage`.
 
+## Son & animations
+- **Sons synthétisés** (Web Audio API, aucun fichier audio) : une note de gamme pentatonique par chiffre posé, buzz d'erreur, glissandos pour Annuler/Gomme, arpège d'indice, arpège de ligne/colonne/bloc complété, carillon quand les 9 exemplaires d'un chiffre sont placés, fanfare de victoire, descente de fin de partie, sons de pause/reprise/nouvelle partie.
+- **Bouton 🔊 dans la barre** et touche **M** pour couper/activer le son ; volume réglable dans les Paramètres.
+- **Animations** : rebond du chiffre posé, secousse + halo rouge sur erreur, points flottants (`+120`), apparition en diagonale de la grille, onde de victoire, confettis, trophée qui rebondit, compteur de score animé, modales en fondu/zoom.
+- Réglage **Animations** (désactivable) ; respecte automatiquement `prefers-reduced-motion`.
+- Nouveaux fichiers : `sound.js` (moteur audio) et `effects.js` (points flottants, compteur, confettis).
+
 ## Lancer en local
 Ouvrez simplement `index.html` dans votre navigateur.

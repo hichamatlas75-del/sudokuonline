@@ -36,6 +36,19 @@
                     <button class="theme-btn" data-theme-target="dark" title="Thème Sombre">🌙</button>
                 </div>
 
+                <button id="btn-sound" class="nav-icon-btn" title="Son (M)" aria-pressed="true">
+                    <svg id="icon-sound-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/>
+                        <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+                        <path d="M19 5a10 10 0 0 1 0 14"/>
+                    </svg>
+                    <svg id="icon-sound-off" class="hidden" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/>
+                        <line x1="22" y1="9" x2="16" y2="15"/>
+                        <line x1="16" y1="9" x2="22" y2="15"/>
+                    </svg>
+                </button>
+
                 <button id="btn-settings" class="nav-icon-btn" title="Paramètres">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
@@ -192,7 +205,7 @@
 
                 <!-- Aide raccourcis clavier -->
                 <div class="keyboard-shortcuts-hint">
-                    <span>Clavier : <strong>1-9</strong> Chiffres • <strong>N</strong> Notes • <strong>H</strong> Indice • <strong>Suppr</strong> Gomme • <strong>Flèches</strong> Déplacement</span>
+                    <span>Clavier : <strong>1-9</strong> Chiffres • <strong>N</strong> Notes • <strong>H</strong> Indice • <strong>M</strong> Son • <strong>Suppr</strong> Gomme • <strong>Flèches</strong> Déplacement</span>
                 </div>
             </aside>
         </section>
@@ -345,6 +358,30 @@
             <div class="settings-list">
                 <label class="setting-row">
                     <div class="setting-text">
+                        <strong>Effets sonores</strong>
+                        <small>Sons de pose, d'erreur, de ligne complétée et de victoire (touche M)</small>
+                    </div>
+                    <input type="checkbox" id="set-sound-enabled" checked>
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
+                        <strong>Volume</strong>
+                        <small>Ajuste le niveau des effets sonores</small>
+                    </div>
+                    <input type="range" id="set-sound-volume" min="0" max="100" step="5" value="60">
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
+                        <strong>Animations</strong>
+                        <small>Rebonds, secousses, points flottants et confettis</small>
+                    </div>
+                    <input type="checkbox" id="set-animations" checked>
+                </label>
+
+                <label class="setting-row">
+                    <div class="setting-text">
                         <strong>Limite d'erreurs (3 erreurs max)</strong>
                         <small>Active la fin de partie au bout de 3 erreurs</small>
                     </div>
@@ -399,6 +436,8 @@
     </div>
 
     <script src="sudoku-engine.js"></script>
+    <script src="sound.js"></script>
+    <script src="effects.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

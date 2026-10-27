@@ -7,6 +7,15 @@ class SudokuApp {
     static STORAGE_KEY_SETTINGS = 'sudoku_com_settings_v1';
     static STORAGE_KEY_STATS = 'sudoku_com_stats_v1';
 
+    // Nom d'animation CSS -> classe à retirer quand elle se termine
+    static ANIM_CLASS_MAP = {
+        cellPop: 'anim-pop',
+        cellShake: 'anim-shake',
+        cellEnter: 'anim-enter',
+        completionWave: 'cell-wave',
+        pulseHint: 'cell-hint-flash'
+    };
+
     constructor() {
         this.settings = this.loadSettings();
         this.stats = this.loadStats();
@@ -40,6 +49,8 @@ class SudokuApp {
         this.timerInterval = null;
 
         this.initDOMReferences();
+        this.audio = new SudokuAudio();
+        this.applyFeedbackSettings();
         this.applyTheme(this.settings.theme);
         this.syncSettingsUI();
         this.createBoardDOM();
@@ -48,6 +59,8 @@ class SudokuApp {
         // Restaurer la partie sauvegardée ou en démarrer une nouvelle
         if (!this.restoreSavedGame()) {
             this.startNewGame('easy');
+        } else {
+            this.playBoardIntro();
         }
     }
 
@@ -84,6 +97,11 @@ class SudokuApp {
         this.diffTabs = document.querySelectorAll('.diff-tab');
         this.numpadBtns = document.querySelectorAll('.numpad-btn');
         this.themeBtns = document.querySelectorAll('.theme-btn');
+
+        this.boardWrapper = document.querySelector('.board-wrapper');
+        this.btnSound = document.getElementById('btn-sound');
+        this.iconSoundOn = document.getElementById('icon-sound-on');
+        this.iconSoundOff = document.getElementById('icon-sound-off');
     }
 
     /**
@@ -103,6 +121,10 @@ class SudokuApp {
                 cell.setAttribute('aria-label', `Ligne ${r + 1}, Colonne ${c + 1}`);
 
                 cell.addEventListener('click', () => this.onCellClick(r, c));
+                cell.addEventListener('animationend', (e) => {
+                    const cls = SudokuApp.ANIM_CLASS_MAP[e.animationName];
+                    if (cls) cell.classList.remove(cls);
+                });
                 this.boardEl.appendChild(cell);
                 this.cellElements[r][c] = cell;
             }
@@ -173,6 +195,7 @@ class SudokuApp {
 
         document.getElementById('btn-second-chance').addEventListener('click', () => {
             this.closeModal('modal-game-over');
+            this.audio.playSecondChance();
             this.mistakes = Math.max(0, this.maxMistakes - 1);
             this.isGameOver = false;
             this.startTimer();
@@ -225,6 +248,7 @@ class SudokuApp {
             el.addEventListener('change', () => {
                 this.settings[key] = el.checked;
                 this.saveSettings();
+                this.applyFeedbackSettings();
                 this.render();
             });
         };
@@ -234,9 +258,43 @@ class SudokuApp {
         bindSetting('set-highlight-identical', 'highlightIdentical');
         bindSetting('set-auto-remove-notes', 'autoRemoveNotes');
         bindSetting('set-hide-used-numbers', 'hideUsedNumbers');
+        bindSetting('set-sound-enabled', 'soundEnabled');
+        bindSetting('set-animations', 'animationsEnabled');
+
+        document.getElementById('set-sound-enabled').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.audio.unlock();
+                this.audio.playToggle(true);
+            }
+        });
+
+        const volumeSlider = document.getElementById('set-sound-volume');
+        volumeSlider.addEventListener('input', () => {
+            this.settings.soundVolume = parseInt(volumeSlider.value, 10) / 100;
+            this.saveSettings();
+            this.applyFeedbackSettings();
+        });
+        volumeSlider.addEventListener('change', () => {
+            this.audio.unlock();
+            this.audio.playPlace(5); // aperçu du volume
+        });
 
         // Raccourcis clavier complets
         window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+        // Les navigateurs exigent un geste utilisateur avant de produire du son
+        ['pointerdown', 'keydown', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, () => this.audio.unlock(), { passive: true });
+        });
+
+        this.btnSound.addEventListener('click', () => this.toggleSound());
+
+        // Petit clic sonore sur les boutons d'interface (les actions de jeu ont leurs propres sons)
+        const uiClickSelector = '.theme-btn, .nav-icon-btn:not(#btn-sound), .secondary-btn, .primary-btn, ' +
+            '.stats-tab, .modal-close, .new-game-btn, .hint-close-btn, [data-close-modal]';
+        document.addEventListener('click', (e) => {
+            if (e.target.closest(uiClickSelector)) this.audio.playClick();
+        });
     }
 
     /**
@@ -282,6 +340,8 @@ class SudokuApp {
         this.startTimer();
         this.render();
         this.saveGameState();
+        this.audio.playNewGame();
+        this.playBoardIntro();
     }
 
     /**
@@ -305,6 +365,8 @@ class SudokuApp {
         this.startTimer();
         this.render();
         this.saveGameState();
+        this.audio.playNewGame();
+        this.playBoardIntro();
     }
 
     /**
@@ -314,6 +376,9 @@ class SudokuApp {
         if (this.isPaused || this.isGameOver || this.isWon) return;
 
         this.selectedCell = { row, col };
+
+        const fastPlacing = this.isFastMode && this.lockedDigit !== null && this.initialBoard[row][col] === 0;
+        if (!fastPlacing) this.audio.playSelect();
 
         // Si le mode "Chiffre d'abord" (Saisie rapide) est actif et qu'un chiffre est verrouillé
         if (this.isFastMode && this.lockedDigit !== null) {
@@ -377,6 +442,7 @@ class SudokuApp {
             } else {
                 cellNotes.splice(idx, 1);
             }
+            this.audio.playNote(idx === -1);
             this.render();
             this.saveGameState();
             return;
@@ -385,10 +451,15 @@ class SudokuApp {
         // Mode saisie normale : si le même chiffre est déjà présent, on l'efface
         if (this.board[row][col] === num) {
             this.board[row][col] = 0;
+            this.audio.playErase();
             this.render();
             this.saveGameState();
             return;
         }
+
+        const scoreBefore = this.score;
+        let unitsDone = 0;
+        let errorCounted = false;
 
         this.board[row][col] = num;
         this.notes[row][col] = [];
@@ -399,6 +470,7 @@ class SudokuApp {
             // Gain de points façon Sudoku.com (base * multiplicateur * facteur vitesse)
             const speedBonus = Math.max(10, 60 - Math.floor(this.elapsedSeconds / 15));
             this.score += speedBonus * this.multiplier;
+            this.audio.playPlace(num);
 
             // Suppression automatique des notes dans la même ligne, colonne et bloc 3x3
             if (this.settings.autoRemoveNotes) {
@@ -406,7 +478,9 @@ class SudokuApp {
             }
 
             // Vérifier les nouvelles unités (ligne, colonne, bloc) complétées
-            this.updateCompletedUnitsSnapshot(true);
+            unitsDone = this.updateCompletedUnitsSnapshot(true);
+            if (unitsDone > 0) this.audio.playUnitComplete(unitsDone);
+            if (this.getRemainingCount(num) === 0) this.celebrateDigit(num);
 
             // Si tous les exemplaires de ce chiffre sont placés et qu'il était verrouillé en mode rapide
             if (this.getRemainingCount(num) === 0 && this.lockedDigit === num) {
@@ -416,18 +490,38 @@ class SudokuApp {
             // Erreur détectée
             if (this.settings.autoCheckErrors || this.hasConflict(row, col, num)) {
                 this.mistakes += 1;
+                errorCounted = true;
+                this.audio.playError();
+                this.animateCell(row, col, 'shake');
+                this.bump(this.mistakesContainer, 'pulse-error');
+                this.bump(this.boardEl, 'board-error');
                 if (this.settings.mistakeLimit && this.mistakes >= this.maxMistakes) {
                     this.isGameOver = true;
                     this.stopTimer();
+                    this.audio.playGameOver();
                     this.render();
                     this.saveGameState();
                     this.openModal('modal-game-over');
                     return;
                 }
+            } else {
+                // Chiffre faux mais non signalé (vérification auto désactivée) : retour neutre
+                this.audio.playPlace(num);
             }
         }
 
         this.render();
+
+        // Retours visuels après le rendu (les classes anim-* survivent aux render())
+        if (isCorrect) {
+            this.animateCell(row, col, 'pop');
+            const gained = this.score - scoreBefore;
+            SudokuFX.floatText(this.boardWrapper, this.cellElements[row][col], `+${gained}`, unitsDone > 0 ? 'bonus' : '');
+            this.bump(this.scoreDisplay, 'pulse-score');
+        } else if (!errorCounted) {
+            this.animateCell(row, col, 'pop');
+        }
+
         this.saveGameState();
         this.checkVictory();
     }
@@ -464,6 +558,7 @@ class SudokuApp {
         this.pushHistory();
         this.board[row][col] = 0;
         this.notes[row][col] = [];
+        this.audio.playErase();
         this.render();
         this.saveGameState();
     }
@@ -494,6 +589,7 @@ class SudokuApp {
         this.notes = prev.notes;
         this.score = prev.score;
 
+        this.audio.playUndo();
         this.render();
         this.saveGameState();
     }
@@ -504,6 +600,7 @@ class SudokuApp {
     toggleNotesMode() {
         if (this.isPaused || this.isGameOver || this.isWon) return;
         this.isNotesMode = !this.isNotesMode;
+        this.audio.playToggle(this.isNotesMode);
         this.render();
     }
 
@@ -516,6 +613,7 @@ class SudokuApp {
         if (!this.isFastMode) {
             this.lockedDigit = null;
         }
+        this.audio.playToggle(this.isFastMode);
         this.render();
     }
 
@@ -535,6 +633,7 @@ class SudokuApp {
                 }
             }
         }
+        this.audio.playAutoNotes();
         this.render();
         this.saveGameState();
     }
@@ -568,7 +667,10 @@ class SudokuApp {
         this.hintExplanation.textContent = hint.explanation;
         this.hintBanner.classList.remove('hidden');
 
-        this.updateCompletedUnitsSnapshot(true);
+        const unitsDone = this.updateCompletedUnitsSnapshot(true);
+        this.audio.playHint();
+        if (unitsDone > 0) this.audio.playUnitComplete(unitsDone, 0.45);
+        this.bump(this.hintsBadge, 'pulse-score');
         this.render();
 
         // Effet visuel sur la case révélée
@@ -587,6 +689,7 @@ class SudokuApp {
     updateCompletedUnitsSnapshot(animateNew = true) {
         const currentComplete = new Set();
         const newlyCompletedCells = [];
+        let newUnits = 0;
 
         // Lignes
         for (let r = 0; r < 9; r++) {
@@ -602,6 +705,7 @@ class SudokuApp {
                 currentComplete.add(key);
                 if (animateNew && !this.completedUnits.has(key)) {
                     this.score += 100 * this.multiplier;
+                    newUnits++;
                     for (let c = 0; c < 9; c++) newlyCompletedCells.push([r, c, c * 35]);
                 }
             }
@@ -621,6 +725,7 @@ class SudokuApp {
                 currentComplete.add(key);
                 if (animateNew && !this.completedUnits.has(key)) {
                     this.score += 100 * this.multiplier;
+                    newUnits++;
                     for (let r = 0; r < 9; r++) newlyCompletedCells.push([r, c, r * 35]);
                 }
             }
@@ -643,6 +748,7 @@ class SudokuApp {
                     currentComplete.add(key);
                     if (animateNew && !this.completedUnits.has(key)) {
                         this.score += 100 * this.multiplier;
+                    newUnits++;
                         let idx = 0;
                         for (let r = br * 3; r < br * 3 + 3; r++) {
                             for (let c = bc * 3; c < bc * 3 + 3; c++) {
@@ -667,6 +773,8 @@ class SudokuApp {
                 }, delay);
             });
         }
+
+        return newUnits;
     }
 
     /**
@@ -714,8 +822,18 @@ class SudokuApp {
             ? '🎉 Nouveau record de temps pour ce niveau !'
             : 'Vous avez résolu la grille avec succès !';
 
+        this.audio.playVictory();
+        this.victoryWave();
+
         setTimeout(() => {
             this.openModal('modal-victory');
+            SudokuFX.confetti();
+            SudokuFX.countUp(
+                document.getElementById('vic-score'),
+                this.score,
+                900,
+                (v) => v.toLocaleString('fr-FR')
+            );
         }, 450);
     }
 
@@ -788,7 +906,10 @@ class SudokuApp {
                 const isGiven = this.initialBoard[r][c] !== 0;
 
                 // Réinitialiser les classes d'état
+                const keptAnimClasses = Array.from(cellEl.classList).filter(cl =>
+                    cl.startsWith('anim-') || cl === 'cell-wave' || cl === 'cell-hint-flash');
                 cellEl.className = 'sudoku-cell';
+                keptAnimClasses.forEach(cl => cellEl.classList.add(cl));
                 cellEl.classList.add(isGiven ? 'is-given' : 'is-user');
 
                 const isSelected = (r === selR && c === selC);
@@ -860,6 +981,12 @@ class SudokuApp {
             return;
         }
 
+        if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            this.toggleSound();
+            return;
+        }
+
         if (e.key === 'p' || e.key === 'P') {
             e.preventDefault();
             this.togglePause();
@@ -905,6 +1032,97 @@ class SudokuApp {
     }
 
     /**
+     * Son & animations : réglages, retours visuels et aides
+     */
+    applyFeedbackSettings() {
+        this.audio.setEnabled(this.settings.soundEnabled);
+        this.audio.setVolume(this.settings.soundVolume);
+        SudokuFX.enabled = !!this.settings.animationsEnabled;
+        document.documentElement.setAttribute('data-anim', this.settings.animationsEnabled ? 'on' : 'off');
+        this.updateSoundButton();
+    }
+
+    updateSoundButton() {
+        if (!this.btnSound) return;
+        const on = !!this.settings.soundEnabled;
+        this.iconSoundOn.classList.toggle('hidden', !on);
+        this.iconSoundOff.classList.toggle('hidden', on);
+        this.btnSound.setAttribute('aria-pressed', String(on));
+    }
+
+    toggleSound() {
+        this.settings.soundEnabled = !this.settings.soundEnabled;
+        this.saveSettings();
+        this.applyFeedbackSettings();
+        this.syncSettingsUI();
+        if (this.settings.soundEnabled) {
+            this.audio.unlock();
+            this.audio.playToggle(true);
+        }
+    }
+
+    /** Rejoue une animation CSS sur une cellule (pop, shake...). */
+    animateCell(row, col, kind) {
+        if (!SudokuFX.enabled) return;
+        const el = this.cellElements[row][col];
+        const cls = `anim-${kind}`;
+        el.classList.remove(cls);
+        void el.offsetWidth; // force le redémarrage de l'animation
+        el.classList.add(cls);
+    }
+
+    /** Rejoue une animation de « bump » sur un élément quelconque. */
+    bump(el, cls) {
+        if (!SudokuFX.enabled || !el) return;
+        el.classList.remove(cls);
+        void el.offsetWidth;
+        el.classList.add(cls);
+        setTimeout(() => el.classList.remove(cls), 600);
+    }
+
+    /** Les 9 exemplaires d'un chiffre sont posés : carillon + éclat sur le pavé. */
+    celebrateDigit(num) {
+        this.audio.playDigitDone();
+        const btn = Array.from(this.numpadBtns).find(b => parseInt(b.dataset.num, 10) === num);
+        if (btn) {
+            this.bump(btn, 'anim-digit-done');
+        }
+    }
+
+    /** Apparition en diagonale de toute la grille (nouvelle partie / reprise). */
+    playBoardIntro() {
+        if (!SudokuFX.enabled) return;
+        const cells = [];
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                const el = this.cellElements[r][c];
+                el.style.setProperty('--d', `${(r + c) * 26}ms`);
+                el.classList.remove('anim-enter');
+                cells.push(el);
+            }
+        }
+        void this.boardEl.offsetWidth;
+        cells.forEach(el => el.classList.add('anim-enter'));
+    }
+
+    /** Onde de victoire qui part de la case sélectionnée et balaie toute la grille. */
+    victoryWave() {
+        if (!SudokuFX.enabled) return;
+        const { row, col } = this.selectedCell;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                const delay = (Math.abs(r - row) + Math.abs(c - col)) * 45;
+                setTimeout(() => {
+                    const el = this.cellElements[r][c];
+                    el.classList.remove('cell-wave');
+                    void el.offsetWidth;
+                    el.classList.add('cell-wave');
+                }, delay);
+            }
+        }
+    }
+
+    /**
      * Chronomètre & Pause
      */
     startTimer() {
@@ -930,6 +1148,7 @@ class SudokuApp {
     togglePause(forceState = null) {
         if (this.isGameOver || this.isWon) return;
         this.isPaused = forceState !== null ? forceState : !this.isPaused;
+        this.audio.playPause(this.isPaused);
 
         this.pauseOverlay.classList.toggle('hidden', !this.isPaused);
         this.iconPause.classList.toggle('hidden', this.isPaused);
@@ -1042,7 +1261,11 @@ class SudokuApp {
             highlightDuplicates: true,
             highlightIdentical: true,
             autoRemoveNotes: true,
-            hideUsedNumbers: true
+            hideUsedNumbers: true,
+            soundEnabled: true,
+            soundVolume: 0.6,
+            // Respecte la préférence système « réduire les animations »
+            animationsEnabled: !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
         };
         try {
             const saved = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_SETTINGS));
@@ -1065,6 +1288,9 @@ class SudokuApp {
         document.getElementById('set-highlight-identical').checked = this.settings.highlightIdentical;
         document.getElementById('set-auto-remove-notes').checked = this.settings.autoRemoveNotes;
         document.getElementById('set-hide-used-numbers').checked = this.settings.hideUsedNumbers;
+        document.getElementById('set-sound-enabled').checked = this.settings.soundEnabled;
+        document.getElementById('set-sound-volume').value = Math.round(this.settings.soundVolume * 100);
+        document.getElementById('set-animations').checked = this.settings.animationsEnabled;
     }
 
     loadStats() {
