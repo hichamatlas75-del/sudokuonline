@@ -35,6 +35,7 @@ class SudokuApp {
 
         this.selectedCell = { row: 0, col: 0 };
         this.isNotesMode = false;
+        this.isAutoNotesOn = false;
         this.isFastMode = false;
         this.lockedDigit = null;
 
@@ -99,6 +100,7 @@ class SudokuApp {
         this.hintsBadge = document.getElementById('hints-badge');
 
         this.btnAutoNotes = document.getElementById('btn-auto-notes');
+        this.autoNotesState = document.getElementById('auto-notes-state');
         this.btnFastMode = document.getElementById('btn-fast-mode');
         this.fastModeState = document.getElementById('fast-mode-state');
 
@@ -366,6 +368,7 @@ class SudokuApp {
         this.isPaused = false;
         this.isGameOver = false;
         this.isWon = false;
+        this.isAutoNotesOn = false;
         this.lockedDigit = null;
         this.completedUnits = new Set();
         this.updateCompletedUnitsSnapshot(false);
@@ -408,6 +411,7 @@ class SudokuApp {
         this.isPaused = false;
         this.isGameOver = false;
         this.isWon = false;
+        this.isAutoNotesOn = false;
         this.completedUnits = new Set();
         this.updateCompletedUnitsSnapshot(false);
         this.hintBanner.classList.add('hidden');
@@ -646,6 +650,7 @@ class SudokuApp {
         this.history.push({
             board: SudokuEngine.cloneBoard(this.board),
             notes: this.notes.map(row => row.map(cell => [...cell])),
+            isAutoNotesOn: !!this.isAutoNotesOn,
             score: this.score,
             streak: this.streak
         });
@@ -667,6 +672,7 @@ class SudokuApp {
         const prev = this.history.pop();
         this.board = prev.board;
         this.notes = prev.notes;
+        this.isAutoNotesOn = !!prev.isAutoNotesOn;
         this.score = prev.score;
         this.streak = prev.streak ?? 0;
 
@@ -700,22 +706,36 @@ class SudokuApp {
     }
 
     /**
-     * Remplit automatiquement toutes les notes candidates légales sur les cases vides
+     * Bascule les Notes automatiques :
+     * - 1er clic (ON) : affiche tous les candidats possibles dans les cases vides
+     * - 2e clic (OFF) : cache / efface toutes les notes de la grille
      */
     fillAutoNotes() {
         if (this.isPaused || this.isGameOver || this.isWon) return;
         this.pushHistory();
 
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
-                if (this.board[r][c] === 0) {
-                    this.notes[r][c] = SudokuEngine.getCandidates(this.board, r, c);
-                } else {
+        if (this.isAutoNotesOn) {
+            this.isAutoNotesOn = false;
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
                     this.notes[r][c] = [];
                 }
             }
+            this.audio.playToggle(false);
+        } else {
+            this.isAutoNotesOn = true;
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (this.board[r][c] === 0) {
+                        this.notes[r][c] = SudokuEngine.getCandidates(this.board, r, c);
+                    } else {
+                        this.notes[r][c] = [];
+                    }
+                }
+            }
+            this.audio.playAutoNotes();
         }
-        this.audio.playAutoNotes();
+
         this.render();
         this.saveGameState();
     }
@@ -979,6 +999,11 @@ class SudokuApp {
         this.hintsBadge.textContent = `${this.hintsRemaining}`;
         this.hintsBadge.className = `status-badge ${this.hintsRemaining > 0 ? 'count' : 'off'}`;
         this.btnHint.classList.toggle('disabled-action', this.hintsRemaining <= 0);
+
+        this.btnAutoNotes.classList.toggle('active', !!this.isAutoNotesOn);
+        if (this.autoNotesState) {
+            this.autoNotesState.textContent = this.isAutoNotesOn ? 'ON' : 'OFF';
+        }
 
         this.btnFastMode.classList.toggle('active', this.isFastMode);
         this.fastModeState.textContent = this.isFastMode ? 'ON' : 'OFF';
@@ -1332,6 +1357,7 @@ class SudokuApp {
             elapsedSeconds: this.elapsedSeconds,
             selectedCell: this.selectedCell,
             isNotesMode: this.isNotesMode,
+            isAutoNotesOn: this.isAutoNotesOn,
             isFastMode: this.isFastMode,
             lockedDigit: this.lockedDigit
         };
@@ -1364,6 +1390,7 @@ class SudokuApp {
             this.hintsRemaining = data.hintsRemaining ?? 3;
             this.elapsedSeconds = data.elapsedSeconds || 0;
             this.isNotesMode = !!data.isNotesMode;
+            this.isAutoNotesOn = !!data.isAutoNotesOn;
             this.isFastMode = !!data.isFastMode;
             this.lockedDigit = data.lockedDigit ?? null;
 
@@ -1945,6 +1972,7 @@ class SudokuApp {
                 this.score = g.score || 0;
                 this.streak = g.streak || 0;
                 this.hintsRemaining = g.hintsRemaining ?? 3;
+                this.isAutoNotesOn = !!g.isAutoNotesOn;
                 this.elapsedSeconds = Math.max(this.elapsedSeconds || 0, g.elapsedSeconds || 0);
 
                 if (changedCell) {
