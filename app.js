@@ -73,6 +73,7 @@ class SudokuApp {
         }
 
         this.syncProfileUI();
+        this.initWakeLock();
         this.initLiveSync();
     }
 
@@ -1466,6 +1467,46 @@ class SudokuApp {
             if (navigator.storage && navigator.storage.persist) {
                 navigator.storage.persist().catch(() => {});
             }
+        } catch (_) {}
+    }
+
+    /**
+     * Maintien de l'écran allumé sur Mobile (Screen Wake Lock API)
+     * Empêche la mise en veille tant que l'application est ouverte et visible.
+     */
+    initWakeLock() {
+        this.wakeLockSentinel = null;
+        this.requestWakeLock();
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.requestWakeLock();
+            }
+        });
+
+        window.addEventListener('focus', () => {
+            this.requestWakeLock();
+        });
+
+        // Certains navigateurs mobiles exigent un premier geste tactile avant d'autoriser le Wake Lock
+        const ensureOnInteraction = () => {
+            if (!this.wakeLockSentinel || this.wakeLockSentinel.released) {
+                this.requestWakeLock();
+            }
+        };
+        document.addEventListener('pointerdown', ensureOnInteraction, { passive: true });
+        document.addEventListener('touchstart', ensureOnInteraction, { passive: true });
+    }
+
+    async requestWakeLock() {
+        try {
+            if (!('wakeLock' in navigator) || document.hidden) return;
+            if (this.wakeLockSentinel && !this.wakeLockSentinel.released) return;
+
+            this.wakeLockSentinel = await navigator.wakeLock.request('screen');
+            this.wakeLockSentinel.addEventListener('release', () => {
+                this.wakeLockSentinel = null;
+            });
         } catch (_) {}
     }
 
