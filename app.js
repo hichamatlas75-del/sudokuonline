@@ -1710,9 +1710,14 @@ class SudokuApp {
     }
 
     /**
-     * Synchronisation Temps Réel (Mobile <-> PC) sans clic manuel
+     * Synchronisation Temps Réel (Mobile <-> PC) Zéro-Quota KV :
+     * - Les coups en direct et le polling passent par le Cache Edge Cloudflare (0 lecture/écriture KV).
+     * - Polling adaptatif intelligent qui ralentit puis se met en pause quand l'écran est inactif.
      */
     async initLiveSync() {
+        this.lastActivityAt = Date.now();
+        this.dirtyForKvCheckpoint = false;
+
         // Canal instantané inter-onglets (même navigateur)
         try {
             if ('BroadcastChannel' in window) {
@@ -1720,33 +1725,64 @@ class SudokuApp {
                 this.liveChannel.onmessage = (ev) => {
                     const msg = ev.data;
                     if (msg && msg.deviceId !== this.deviceId && msg.bundle && msg.rev > this.stateRev) {
+                        this.lastActivityAt = Date.now();
                         this.applyRemoteLiveState(msg.bundle, msg.rev);
                     }
                 };
             }
         } catch (_) {}
 
-        // 1. Premier check au démarrage : récupérer la grille distante si elle existe déjà
+        const markActive = () => {
+            const wasPausedByIdle = (Date.now() - this.lastActivityAt) >= 180000;
+            this.lastActivityAt = Date.now();
+            if (wasPausedByIdle && !document.hidden) {
+                this.pollLiveSync(false);
+            }
+        };
+        document.addEventListener('pointerdown', markActive, { passive: true });
+        document.addEventListener('keydown', markActive, { passive: true });
+        document.addEventListener('touchstart', markActive, { passive: true });
+
+        // 1. Premier check au démarrage (seul appel autorisé à lire KV si le cache Edge est froid)
         const foundRemote = await this.pollLiveSync(true);
         this.liveSyncReady = true;
         if (!foundRemote) {
-            // Aucune grille sur le serveur pour ce Pseudo+PIN -> on publie la grille locale
             this.stateRev = Date.now();
-            this.pushLiveSyncNow();
+            this.pushLiveSyncNow(true);
         }
 
-        // 2. Boucle temps réel rapide (toutes les 850 ms quand l'écran est visible)
-        this._livePollInterval = setInterval(() => {
+        // 2. Boucle de polling adaptative (1.4s actif -> 4.5s repos -> pause après 3 min sans toucher)
+        const runAdaptiveLoop = async () => {
             if (!document.hidden && !this.isApplyingRemote) {
+                const idleMs = Date.now() - this.lastActivityAt;
+                if (idleMs < 180000) {
+                    await this.pollLiveSync(false);
+                }
+            }
+            const idleMs = Date.now() - this.lastActivityAt;
+            const nextDelay = idleMs < 60000 ? 1400 : (idleMs < 180000 ? 4500 : 8000);
+            this._livePollTimer = setTimeout(runAdaptiveLoop, nextDelay);
+        };
+        this._livePollTimer = setTimeout(runAdaptiveLoop, 1400);
+
+        // Sauvegarde KV de sécurité uniquement quand on quitte l'application, et réveil au retour
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (this.dirtyForKvCheckpoint) {
+                    this.pushLiveSyncNow(true);
+                }
+            } else {
+                this.lastActivityAt = Date.now();
                 this.pollLiveSync(false);
             }
-        }, 850);
-
-        // Réveil immédiat dès qu'on revient sur l'onglet ou déverrouille le téléphone
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) this.pollLiveSync(false);
+        });
+        window.addEventListener('pagehide', () => {
+            if (this.dirtyForKvCheckpoint) {
+                this.pushLiveSyncNow(true);
+            }
         });
         window.addEventListener('focus', () => {
+            this.lastActivityAt = Date.now();
             this.pollLiveSync(false);
         });
     }
@@ -1768,12 +1804,14 @@ class SudokuApp {
         }
     }
 
-    async pushLiveSyncNow() {
+    async pushLiveSyncNow(checkpoint = false) {
         if (!this.hasValidLiveCredentials() || this.isApplyingRemote) return;
         const pseudo = this.profile.name.trim();
         const pin = this.profile.pin.trim();
         const rev = this.stateRev || Date.now();
         this.stateRev = rev;
+        this.lastActivityAt = Date.now();
+        this.dirtyForKvCheckpoint = !checkpoint;
 
         const bundle = this.buildFullBackupBundle();
 
@@ -1795,6 +1833,7 @@ class SudokuApp {
                     pseudo,
                     pin,
                     rev,
+                    checkpoint: Boolean(checkpoint),
                     deviceId: this.deviceId,
                     bundle
                 }),
@@ -1804,6 +1843,9 @@ class SudokuApp {
             if (res.ok && data.ok) {
                 if (data.rev && data.rev > this.stateRev) {
                     this.stateRev = data.rev;
+                }
+                if (data.kvPersisted) {
+                    this.dirtyForKvCheckpoint = false;
                 }
                 this.profile.lastCloudSync = data.updatedAt || new Date().toISOString();
                 this.saveProfile();
@@ -1827,6 +1869,8 @@ class SudokuApp {
                     action: 'poll',
                     pseudo,
                     pin,
+                    deviceId: this.deviceId,
+                    coldStart: Boolean(forceFull),
                     sinceRev: forceFull ? 0 : (this.stateRev || 0)
                 }),
                 cache: 'no-store'
@@ -1842,6 +1886,7 @@ class SudokuApp {
                     this.stateRev = Math.max(this.stateRev, Number(data.rev || 0));
                     return true;
                 }
+                this.lastActivityAt = Date.now();
                 this.applyRemoteLiveState(data.bundle, data.rev);
                 return true;
             }
