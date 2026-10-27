@@ -897,42 +897,251 @@ body {
     color: #fff;
 }
 
-/* Liste Paramètres */
-.settings-list {
+/* ==========================================================================
+   Bouton d'installation Navbar, Outils rapides & Modale Paramètres moderne
+   ========================================================================== */
+.install-pill-btn {
+    background: var(--accent-primary) !important;
+    color: #ffffff !important;
+    border-radius: 999px;
+    padding: 7px 13px;
+    box-shadow: 0 2px 8px rgba(0, 114, 227, 0.28);
+}
+.install-pill-btn:hover {
+    background: var(--accent-hover) !important;
+}
+.install-btn-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.new-game-inline-btn {
+    display: none;
+    background: var(--accent-primary);
+    color: #ffffff;
+    font-weight: 700;
+}
+.new-game-inline-btn:hover {
+    background: var(--accent-hover);
+}
+
+.sheet-handle {
+    display: none;
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--board-border-cell);
+    margin: 0 auto 10px;
+    flex-shrink: 0;
+}
+
+/* Modale Paramètres structurée (Header fixe + Corps scrollable + Footer fixe) */
+.modal-card.modal-settings-card {
+    max-width: 460px;
+    max-height: min(88vh, 700px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 20px 20px 18px;
+}
+
+.modal-card.modal-settings-card .modal-header,
+.modal-card.modal-settings-card .modal-footer {
+    flex-shrink: 0;
+}
+
+.modal-body-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    margin-bottom: 20px;
+    padding: 2px 2px 6px;
+    margin-bottom: 12px;
+}
+
+/* Carte PWA dans les Paramètres */
+.settings-pwa-card {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+}
+.settings-pwa-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.settings-pwa-info strong {
+    font-size: 0.9rem;
+}
+.settings-pwa-info small {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    line-height: 1.3;
+}
+.settings-pwa-btn {
+    background: #ffffff;
+    color: var(--accent-primary);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.settings-section-title {
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    padding-left: 4px;
+}
+
+.settings-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: var(--accent-soft);
+    padding: 4px;
+    border-radius: 10px;
+}
+.settings-theme-choice {
+    padding: 8px 6px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.settings-group-card {
+    background: var(--accent-soft);
+    border-radius: 12px;
+    padding: 2px 14px;
+    display: flex;
+    flex-direction: column;
 }
 
 .setting-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--board-border-cell);
     cursor: pointer;
+}
+.setting-row:last-child {
+    border-bottom: none;
 }
 
 .setting-text {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
 
 .setting-text strong {
-    font-size: 0.92rem;
+    font-size: 0.9rem;
+    line-height: 1.25;
 }
 
 .setting-text small {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
+    line-height: 1.3;
 }
 
-.setting-row input[type="checkbox"] {
+/* Interrupteur moderne (Toggle Switch façon iOS / Android) */
+.setting-row input[type="checkbox"].toggle-switch {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 46px;
+    height: 26px;
+    background: var(--board-border-cell);
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease;
+    outline: none;
+}
+.setting-row input[type="checkbox"].toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
     width: 20px;
     height: 20px;
-    accent-color: var(--accent-primary);
-    cursor: pointer;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.setting-row input[type="checkbox"].toggle-switch:checked {
+    background: var(--accent-primary);
+}
+.setting-row input[type="checkbox"].toggle-switch:checked::after {
+    transform: translateX(20px);
+}
+
+/* Guide d'installation PWA pas-à-pas */
+.install-steps-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.install-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--accent-soft);
+    padding: 12px 14px;
+    border-radius: 12px;
+}
+.install-step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.install-step strong {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+.install-step p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
 }
 
 .modal-footer.between {
@@ -958,40 +1167,6 @@ body {
 
 .hidden {
     display: none !important;
-}
-
-/* ==========================================================================
-   Responsive Mobile & Tablette
-   ========================================================================== */
-@media (max-width: 820px) {
-    .game-workspace {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-
-    .controls-panel {
-        max-width: 500px;
-        margin: 0 auto;
-    }
-
-    .numpad {
-        grid-template-columns: repeat(9, 1fr);
-        gap: 6px;
-    }
-
-    .numpad-btn {
-        height: 60px;
-        border-radius: 8px;
-    }
-
-    .num-digit {
-        font-size: 1.45rem;
-    }
-
-    .nav-btn-label,
-    .keyboard-shortcuts-hint {
-        display: none;
-    }
 }
 
 
@@ -1219,7 +1394,61 @@ button,
     to   { transform: translateY(0); }
 }
 
-/* Bannières PWA (mise à jour / astuce iOS) */
+/* Bannières PWA (invitation d'installation + mise à jour) */
+.pwa-banner {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    max-width: 460px;
+    margin: 0 auto;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1.5px solid var(--accent-primary);
+    padding: 10px 12px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--shadow-md);
+    z-index: 160;
+    animation: slideUp 0.3s ease;
+}
+.pwa-banner-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+.pwa-banner-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.pwa-banner-text strong {
+    font-size: 0.86rem;
+    line-height: 1.2;
+}
+.pwa-banner-text span {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pwa-banner-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.35rem;
+    line-height: 1;
+    padding: 4px 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
 .toast {
     position: fixed;
     left: 12px;
@@ -1246,27 +1475,60 @@ button,
     color: #fff;
     border: none;
     border-radius: 8px;
-    padding: 9px 14px;
+    padding: 8px 13px;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     white-space: nowrap;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
-/* ---------- Téléphones & tablettes en portrait ---------- */
+/* ---------- Téléphones & tablettes en portrait (100% sans scroll sur l'écran d'accueil) ---------- */
 @media (max-width: 820px) {
-    .navbar { height: calc(52px + env(safe-area-inset-top)); }
-    .navbar-container { padding: 0 12px; }
+    html, body {
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow: hidden;
+    }
+
+    .navbar {
+        height: calc(48px + env(safe-area-inset-top));
+        flex-shrink: 0;
+    }
+    .navbar-container { padding: 0 10px; }
     .navbar-actions { gap: 6px; }
-    .brand-logo { width: 30px; height: 30px; }
-    .brand-title { font-size: 1.2rem; }
-    .nav-icon-btn { min-width: 38px; min-height: 38px; padding: 8px; justify-content: center; }
-    .theme-btn { padding: 6px 8px; }
+    .brand { gap: 7px; }
+    .brand-logo { width: 28px; height: 28px; font-size: 8px; }
+    .brand-title { font-size: 1.08rem; }
+    .nav-btn-label,
+    .keyboard-shortcuts-hint { display: none; }
+    .nav-icon-btn { min-width: 36px; min-height: 36px; padding: 7px; justify-content: center; }
+    .install-pill-btn { padding: 6px 11px; min-height: 34px; }
+    .install-btn-label { font-size: 0.78rem; }
 
-    .main-container { margin: 8px auto 12px; padding: 0 10px; }
+    /* Masquer le sélecteur de thème dans la navbar sur mobile (il est intégré dans Paramètres) */
+    .navbar .theme-switcher { display: none; }
 
-    /* Difficulté : une seule ligne défilante au doigt */
-    .top-bar { flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 8px; }
+    .main-container {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        margin: 0 auto;
+        padding: 6px 10px calc(8px + env(safe-area-inset-bottom));
+        max-width: 500px;
+    }
+
+    /* Barre supérieure compacte : Difficulté défilante + barre de score/temps */
+    .top-bar {
+        flex-shrink: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        margin-bottom: 4px;
+    }
     .difficulty-selector {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -1278,37 +1540,95 @@ button,
     }
     .difficulty-selector::-webkit-scrollbar { display: none; }
     .difficulty-label { display: none; }
-    .diff-tab { flex: 0 0 auto; padding: 8px 12px; font-size: 0.85rem; white-space: nowrap; }
+    .diff-tab {
+        flex: 0 0 auto;
+        padding: 5px 10px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
 
-    .game-info-bar { justify-content: space-between; gap: 8px; padding: 0 4px; }
-    .info-label { font-size: 0.75rem; }
-    .info-value { font-size: 0.9rem; }
+    .game-info-bar {
+        justify-content: space-between;
+        gap: 8px;
+        background: var(--bg-surface);
+        padding: 4px 10px;
+        border-radius: 8px;
+        box-shadow: var(--shadow-sm);
+    }
+    .info-label { font-size: 0.72rem; }
+    .info-value { font-size: 0.86rem; }
+    .pause-icon-btn { width: 24px; height: 24px; }
 
-    .game-workspace { gap: 12px; }
+    /* Workspace flexible : la grille prend tout l'espace disponible sans jamais déborder */
+    .game-workspace {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+    }
 
-    /* La grille occupe la largeur, mais jamais plus que la hauteur disponible */
-    .board-wrapper { max-width: min(100%, max(288px, calc(100dvh - 400px))); }
-    .sudoku-cell { font-size: clamp(1.25rem, 6vw, 1.9rem); }
-    .note-item { font-size: clamp(0.55rem, 2.6vw, 0.72rem); }
+    .board-wrapper {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        max-width: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+    }
+    .sudoku-board {
+        width: min(100%, calc(100dvh - 262px));
+        max-width: 100%;
+        max-height: 100%;
+        aspect-ratio: 1 / 1;
+    }
+    .sudoku-cell { font-size: clamp(1.15rem, 5.5vw, 1.75rem); }
+    .note-item { font-size: clamp(0.5rem, 2.3vw, 0.68rem); }
 
-    /* Contrôles dans l'ordre du pouce : actions, chiffres, outils, nouvelle partie */
-    .controls-panel { gap: 10px; }
-    .action-buttons { order: 1; gap: 6px; }
-    .numpad { order: 2; gap: 4px; }
-    .quick-tools-bar { order: 3; }
-    .new-game-btn { order: 4; height: 46px; font-size: 1rem; }
+    /* Panneau de contrôle ultra-compact en bas */
+    .controls-panel {
+        flex-shrink: 0;
+        width: 100%;
+        max-width: 500px;
+        gap: 6px;
+        margin: 0 auto;
+    }
+    .action-buttons { order: 1; gap: 4px; }
+    .numpad {
+        order: 2;
+        grid-template-columns: repeat(9, 1fr);
+        gap: 4px;
+    }
+    .quick-tools-bar {
+        order: 3;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 6px;
+    }
+    /* Le gros bouton Nouvelle Partie desktop est remplacé par le bouton compact sur la 3e ligne */
+    .new-game-btn { display: none; }
+    .new-game-inline-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+    }
 
-    .action-icon-circle { width: 46px; height: 46px; }
-    .action-icon-circle svg { width: 22px; height: 22px; }
-    .action-label { font-size: 0.7rem; }
-    .status-badge { font-size: 0.62rem; padding: 1px 5px; }
+    .action-btn { gap: 3px; }
+    .action-icon-circle { width: 40px; height: 40px; }
+    .action-icon-circle svg { width: 20px; height: 20px; }
+    .action-label { font-size: 0.68rem; }
+    .status-badge { font-size: 0.58rem; padding: 1px 5px; top: -3px; right: -5px; }
 
-    .numpad-btn { height: 56px; border-radius: 8px; }
-    .num-digit { font-size: 1.4rem; }
-    .num-remaining { font-size: 0.62rem; }
-    .quick-tool-btn { padding: 10px 8px; font-size: 0.78rem; }
+    .numpad-btn { height: 48px; border-radius: 8px; }
+    .num-digit { font-size: 1.32rem; line-height: 1.05; }
+    .num-remaining { font-size: 0.6rem; }
+    .quick-tool-btn { padding: 8px 6px; font-size: 0.75rem; white-space: nowrap; }
 
-    /* Indice : bandeau flottant en bas, sans pousser la mise en page */
+    /* Indice : bandeau flottant en bas */
     .hint-banner {
         position: fixed;
         left: 10px;
@@ -1320,70 +1640,96 @@ button,
     }
     .hint-banner:not(.hidden) { animation: slideUp 0.3s ease; }
 
-    /* Modales : feuilles qui montent du bas */
+    /* Modales : Bottom Sheets modernes avec en-tête et pied fixes */
+    .sheet-handle { display: block; }
     .modal-backdrop { align-items: flex-end; padding: 0; }
     .modal-card,
-    .modal-card.modal-wide {
+    .modal-card.modal-wide,
+    .modal-card.modal-settings-card {
         max-width: none;
-        max-height: 92vh;
-        max-height: 92dvh;
+        max-height: 88vh;
+        max-height: 88dvh;
+        border-radius: 20px 20px 0 0;
+        padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+    }
+    .modal-card:not(.modal-settings-card) {
         overflow-y: auto;
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
-        border-radius: 18px 18px 0 0;
-        padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
     }
-    .modal-backdrop:not(.hidden) .modal-card { animation: sheetUp 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
-    .modal-close { padding: 6px 10px; font-size: 1.8rem; }
+    .modal-backdrop:not(.hidden) .modal-card { animation: sheetUp 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+    .modal-header { margin-bottom: 10px; }
+    .modal-header h2 { font-size: 1.15rem; }
+    .modal-close { padding: 4px 8px; font-size: 1.65rem; }
 
     .stats-diff-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .stats-diff-tabs::-webkit-scrollbar { display: none; }
-    .stats-tab { flex: 0 0 auto; padding: 8px 12px; }
+    .stats-tab { flex: 0 0 auto; padding: 7px 11px; }
 
-    .setting-row { padding: 4px 0; }
-    .setting-row input[type="checkbox"] { width: 24px; height: 24px; }
+    .setting-row { padding: 10px 0; }
+    .setting-row input[type="range"] { width: 110px; }
 }
 
-@media (max-width: 480px) {
-    .brand-title { display: none; }
+/* Écrans très courts en hauteur (ex: iPhone SE / petits Android) */
+@media (max-width: 820px) and (max-height: 670px) {
+    .navbar { height: calc(42px + env(safe-area-inset-top)); }
+    .sudoku-board { width: min(100%, calc(100dvh - 238px)); }
+    .action-icon-circle { width: 36px; height: 36px; }
+    .numpad-btn { height: 42px; }
+    .num-digit { font-size: 1.2rem; }
+    .quick-tool-btn { padding: 6px 6px; font-size: 0.72rem; }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 390px) {
+    .brand-dot { display: none; }
     .navbar-actions { gap: 4px; }
-    .nav-icon-btn { min-width: 34px; padding: 7px; }
-    .theme-btn { padding: 5px 6px; font-size: 0.8rem; }
-    .numpad-btn { height: 50px; }
+    .nav-icon-btn { min-width: 34px; padding: 6px; }
+    .install-pill-btn { padding: 6px 9px; }
 }
 
 /* ---------- Téléphone en paysage : grille à gauche, contrôles à droite ---------- */
 @media (orientation: landscape) and (max-height: 540px) {
-    .navbar { height: calc(44px + env(safe-area-inset-top)); }
+    html, body {
+        height: 100dvh;
+        overflow: hidden;
+    }
+    .navbar { height: calc(40px + env(safe-area-inset-top)); }
     .brand-title { display: none; }
-    .main-container { max-width: none; margin: 6px auto; padding: 0 12px; }
-    .top-bar { flex-direction: row; align-items: center; flex-wrap: nowrap; margin-bottom: 6px; gap: 10px; }
+    .main-container { max-width: none; margin: 4px auto; padding: 0 12px; }
+    .top-bar { flex-direction: row; align-items: center; flex-wrap: nowrap; margin-bottom: 4px; gap: 10px; }
     .difficulty-selector { margin: 0; padding: 0; flex: 1; min-width: 0; }
-    .game-info-bar { flex: 0 0 auto; gap: 14px; }
+    .game-info-bar { flex: 0 0 auto; gap: 12px; }
 
-    .game-workspace { grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+    .game-workspace {
+        flex-direction: row;
+        grid-template-columns: auto 1fr;
+        gap: 14px;
+        align-items: center;
+    }
     .board-wrapper {
-        width: calc(100dvh - 110px);
-        max-width: calc(100dvh - 110px);
-        min-width: 220px;
+        width: calc(100dvh - 96px);
+        max-width: calc(100dvh - 96px);
+        min-width: 200px;
+        flex: 0 0 auto;
         margin: 0;
     }
-    .controls-panel { max-width: none; gap: 8px; margin: 0; }
-    .numpad { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-    .numpad-btn { height: 40px; }
-    .num-digit { font-size: 1.25rem; }
+    .sudoku-board {
+        width: 100%;
+    }
+    .controls-panel { max-width: none; gap: 6px; margin: 0; flex: 1; }
+    .numpad { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .numpad-btn { height: 36px; }
+    .num-digit { font-size: 1.15rem; }
     .num-remaining { display: none; }
-    .action-icon-circle { width: 40px; height: 40px; }
+    .action-icon-circle { width: 36px; height: 36px; }
     .action-label { display: none; }
-    .new-game-btn { height: 40px; }
-    .quick-tool-btn { padding: 7px 6px; }
+    .quick-tool-btn { padding: 6px 6px; }
 }
 
 /* ---------- App installée (mode standalone) ---------- */
 @media (display-mode: standalone) {
-    #btn-install { display: none !important; }
+    #btn-install,
+    #settings-install-card,
+    #pwa-install-banner { display: none !important; }
     body { -webkit-user-select: none; user-select: none; }
 }

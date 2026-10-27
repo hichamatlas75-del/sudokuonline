@@ -13,6 +13,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Sudoku">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script>
+        window.__deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window.__deferredPrompt = e;
+        });
+    </script>
     <title>Sudoku.com - Jeu de Sudoku Gratuit en Ligne</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -46,13 +53,13 @@
                     <button class="theme-btn" data-theme-target="dark" title="Thème Sombre">🌙</button>
                 </div>
 
-                <button id="btn-install" class="nav-icon-btn hidden" title="Installer l'application">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button id="btn-install" class="nav-icon-btn install-pill-btn" title="Installer l'application">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 3v12"/>
                         <path d="m7 11 5 5 5-5"/>
                         <path d="M5 21h14"/>
                     </svg>
-                    <span class="nav-btn-label">Installer</span>
+                    <span class="install-btn-label">Installer</span>
                 </button>
 
                 <button id="btn-sound" class="nav-icon-btn" title="Son (M)" aria-pressed="true">
@@ -199,13 +206,16 @@
                     </button>
                 </div>
 
-                <!-- Outils rapides secondaires : Notes Auto & Mode Saisie Rapide -->
+                <!-- Outils rapides secondaires : Notes Auto, Mode Saisie Rapide & Nouvelle partie (mobile) -->
                 <div class="quick-tools-bar">
                     <button id="btn-auto-notes" class="quick-tool-btn" title="Remplir automatiquement tous les candidats possibles">
                         ✨ Notes auto
                     </button>
                     <button id="btn-fast-mode" class="quick-tool-btn" title="Verrouiller un chiffre pour remplir plusieurs cases à la suite">
-                        ⚡ Chiffre d'abord : <span id="fast-mode-state">OFF</span>
+                        ⚡ Rapide : <span id="fast-mode-state">OFF</span>
+                    </button>
+                    <button id="btn-new-game-mobile" class="quick-tool-btn new-game-inline-btn" title="Démarrer une nouvelle partie">
+                        ➕ Partie
                     </button>
                 </div>
 
@@ -368,96 +378,146 @@
 
     <!-- MODAL : Paramètres -->
     <div id="modal-settings" class="modal-backdrop hidden" role="dialog" aria-modal="true">
-        <div class="modal-card">
+        <div class="modal-card modal-settings-card">
+            <div class="sheet-handle" aria-hidden="true"></div>
             <div class="modal-header">
-                <h2>Paramètres de jeu</h2>
-                <button class="modal-close" data-close-modal="modal-settings">&times;</button>
+                <h2>Paramètres</h2>
+                <button class="modal-close" data-close-modal="modal-settings" aria-label="Fermer">&times;</button>
             </div>
 
-            <div class="settings-list">
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Effets sonores</strong>
-                        <small>Sons de pose, d'erreur, de ligne complétée et de victoire (touche M)</small>
+            <div class="modal-body-scroll">
+                <!-- Carte d'installation PWA intégrée aux paramètres -->
+                <div id="settings-install-card" class="settings-pwa-card">
+                    <div class="settings-pwa-info">
+                        <strong>📲 Installer l'application Sudoku</strong>
+                        <small>Jouez en plein écran et 100 % hors ligne sur votre téléphone ou ordinateur</small>
                     </div>
-                    <input type="checkbox" id="set-sound-enabled" checked>
-                </label>
+                    <button id="btn-settings-install" class="settings-pwa-btn" type="button">Installer</button>
+                </div>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Volume</strong>
-                        <small>Ajuste le niveau des effets sonores</small>
+                <!-- Section Apparence / Thème (très pratique sur mobile) -->
+                <div class="settings-section">
+                    <span class="settings-section-title">Apparence</span>
+                    <div class="settings-theme-grid" role="group" aria-label="Thème visuel">
+                        <button type="button" class="theme-btn settings-theme-choice active" data-theme-target="light">☀️ Clair</button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="sepia">📜 Sépia</button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="dark">🌙 Sombre</button>
                     </div>
-                    <input type="range" id="set-sound-volume" min="0" max="100" step="5" value="60">
-                </label>
+                </div>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Vibrations</strong>
-                        <small>Retour haptique sur erreur, ligne complétée et victoire (mobile compatible)</small>
-                    </div>
-                    <input type="checkbox" id="set-haptics" checked>
-                </label>
+                <!-- Section Son & Retours -->
+                <div class="settings-section">
+                    <span class="settings-section-title">Son & Retours</span>
+                    <div class="settings-group-card">
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Effets sonores</strong>
+                                <small>Sons Marimba & Kalimba (touche M)</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-sound-enabled" checked>
+                        </label>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Animations</strong>
-                        <small>Rebonds, secousses, points flottants et confettis</small>
-                    </div>
-                    <input type="checkbox" id="set-animations" checked>
-                </label>
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Volume sonore</strong>
+                                <small>Niveau des effets (<span id="volume-pct">60%</span>)</small>
+                            </div>
+                            <input type="range" id="set-sound-volume" min="0" max="100" step="5" value="60">
+                        </label>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Limite d'erreurs (3 erreurs max)</strong>
-                        <small>Active la fin de partie au bout de 3 erreurs</small>
-                    </div>
-                    <input type="checkbox" id="set-mistake-limit" checked>
-                </label>
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Vibrations</strong>
+                                <small>Retour haptique sur mobile compatible</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-haptics" checked>
+                        </label>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Vérification auto des erreurs</strong>
-                        <small>Signale immédiatement les chiffres qui ne correspondent pas à la solution</small>
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Animations & Effets</strong>
+                                <small>Ondes, particules, séries et confettis</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-animations" checked>
+                        </label>
                     </div>
-                    <input type="checkbox" id="set-auto-check" checked>
-                </label>
+                </div>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Surligner les doublons</strong>
-                        <small>Met en rouge les chiffres identiques dans la même ligne, colonne ou bloc</small>
-                    </div>
-                    <input type="checkbox" id="set-highlight-duplicates" checked>
-                </label>
+                <!-- Section Assistance & Règles -->
+                <div class="settings-section">
+                    <span class="settings-section-title">Règles & Assistance</span>
+                    <div class="settings-group-card">
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Limite d'erreurs (3 max)</strong>
+                                <small>Fin de partie au bout de 3 erreurs</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-mistake-limit" checked>
+                        </label>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Surligner les chiffres identiques</strong>
-                        <small>Met en évidence toutes les occurrences du chiffre sélectionné</small>
-                    </div>
-                    <input type="checkbox" id="set-highlight-identical" checked>
-                </label>
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Vérification auto des erreurs</strong>
+                                <small>Signale immédiatement les chiffres erronés</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-auto-check" checked>
+                        </label>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Suppression auto des notes</strong>
-                        <small>Retire automatiquement les notes obsolètes lorsqu'un chiffre est placé</small>
-                    </div>
-                    <input type="checkbox" id="set-auto-remove-notes" checked>
-                </label>
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Surligner les doublons</strong>
+                                <small>Met en rouge les conflits de ligne, colonne ou bloc</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-highlight-duplicates" checked>
+                        </label>
 
-                <label class="setting-row">
-                    <div class="setting-text">
-                        <strong>Masquer les chiffres utilisés</strong>
-                        <small>Grise les boutons du pavé numérique lorsque les 9 exemplaires sont placés</small>
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Surligner les chiffres identiques</strong>
+                                <small>Met en évidence toutes les occurrences du chiffre</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-highlight-identical" checked>
+                        </label>
+
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Suppression auto des notes</strong>
+                                <small>Retire les notes obsolètes quand un chiffre est posé</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-auto-remove-notes" checked>
+                        </label>
+
+                        <label class="setting-row">
+                            <div class="setting-text">
+                                <strong>Masquer les chiffres utilisés</strong>
+                                <small>Grise le chiffre quand les 9 exemplaires sont placés</small>
+                            </div>
+                            <input type="checkbox" class="toggle-switch" id="set-hide-used-numbers" checked>
+                        </label>
                     </div>
-                    <input type="checkbox" id="set-hide-used-numbers" checked>
-                </label>
+                </div>
             </div>
 
             <div class="modal-footer">
                 <button class="primary-btn" data-close-modal="modal-settings">Terminé</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : Guide d'installation PWA (Android / iOS / Desktop) -->
+    <div id="modal-install-pwa" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="sheet-handle" aria-hidden="true"></div>
+            <div class="modal-header">
+                <h2>📲 Installer l'application</h2>
+                <button class="modal-close" data-close-modal="modal-install-pwa" aria-label="Fermer">&times;</button>
+            </div>
+            <p class="modal-subtitle">Ajoutez <strong>Sudoku</strong> sur votre écran d'accueil pour jouer en plein écran et hors connexion :</p>
+            <div id="install-guide-steps" class="install-steps-box">
+                <!-- Rempli dynamiquement selon Android / iOS / Desktop par pwa.js -->
+            </div>
+            <div class="modal-footer">
+                <button class="primary-btn" data-close-modal="modal-install-pwa">J'ai compris</button>
             </div>
         </div>
     </div>
@@ -468,13 +528,19 @@
     <script src="app.js"></script>
 
     <!-- Bannières PWA -->
+    <div id="pwa-install-banner" class="pwa-banner hidden" role="region" aria-label="Installer l'application">
+        <img src="icons/icon-192.png" alt="" class="pwa-banner-icon" width="40" height="40">
+        <div class="pwa-banner-text">
+            <strong>Installer l'app Sudoku</strong>
+            <span>Plein écran &amp; jouable hors ligne</span>
+        </div>
+        <button id="btn-banner-install" class="toast-btn" type="button">Installer</button>
+        <button id="btn-banner-close" class="pwa-banner-close" type="button" aria-label="Fermer">&times;</button>
+    </div>
+
     <div id="update-toast" class="toast hidden" role="status">
         <span>Une nouvelle version est disponible.</span>
         <button id="btn-update" class="toast-btn">Mettre à jour</button>
-    </div>
-    <div id="ios-install-hint" class="toast hidden" role="status">
-        <span>Installer : touchez <strong>Partager</strong> puis <strong>Sur l'écran d'accueil</strong>.</span>
-        <button id="btn-ios-hint-close" class="toast-btn">OK</button>
     </div>
 
     <script src="pwa.js"></script>

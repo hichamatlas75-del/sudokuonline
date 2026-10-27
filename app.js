@@ -147,6 +147,12 @@ class SudokuApp {
         document.getElementById('btn-new-game').addEventListener('click', () => {
             this.openModal('modal-new-game');
         });
+        const btnNewGameMobile = document.getElementById('btn-new-game-mobile');
+        if (btnNewGameMobile) {
+            btnNewGameMobile.addEventListener('click', () => {
+                this.openModal('modal-new-game');
+            });
+        }
 
         this.btnUndo.addEventListener('click', () => this.undo());
         this.btnErase.addEventListener('click', () => this.eraseSelectedCell());
@@ -243,6 +249,15 @@ class SudokuApp {
             });
         });
 
+        // Fermeture des modales en touchant l'arrière-plan sombre (pratique sur mobile)
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+            backdrop.addEventListener('click', (e) => {
+                if (e.target === backdrop && backdrop.id !== 'modal-game-over') {
+                    backdrop.classList.add('hidden');
+                }
+            });
+        });
+
         // Écouteurs des paramètres
         const bindSetting = (id, key) => {
             const el = document.getElementById(id);
@@ -271,8 +286,11 @@ class SudokuApp {
         });
 
         const volumeSlider = document.getElementById('set-sound-volume');
+        const volumePct = document.getElementById('volume-pct');
         volumeSlider.addEventListener('input', () => {
-            this.settings.soundVolume = parseInt(volumeSlider.value, 10) / 100;
+            const val = parseInt(volumeSlider.value, 10);
+            this.settings.soundVolume = val / 100;
+            if (volumePct) volumePct.textContent = `${val}%`;
             this.saveSettings();
             this.applyFeedbackSettings();
         });
@@ -1383,7 +1401,10 @@ class SudokuApp {
         document.getElementById('set-auto-remove-notes').checked = this.settings.autoRemoveNotes;
         document.getElementById('set-hide-used-numbers').checked = this.settings.hideUsedNumbers;
         document.getElementById('set-sound-enabled').checked = this.settings.soundEnabled;
-        document.getElementById('set-sound-volume').value = Math.round(this.settings.soundVolume * 100);
+        const volPct = Math.round(this.settings.soundVolume * 100);
+        document.getElementById('set-sound-volume').value = volPct;
+        const volumePctEl = document.getElementById('volume-pct');
+        if (volumePctEl) volumePctEl.textContent = `${volPct}%`;
         document.getElementById('set-animations').checked = this.settings.animationsEnabled;
         document.getElementById('set-haptics').checked = this.settings.hapticsEnabled;
     }
