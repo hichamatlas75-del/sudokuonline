@@ -57,6 +57,12 @@
                     <button class="theme-btn active" data-theme-target="light" title="Thème Clair">☀️</button>
                     <button class="theme-btn" data-theme-target="sepia" title="Thème Sépia">📜</button>
                     <button class="theme-btn" data-theme-target="dark" title="Thème Sombre">🌙</button>
+                    <button class="theme-btn" data-theme-target="oled" title="Thème OLED Noir Pur">🌑</button>
+                    <button class="theme-btn" data-theme-target="emerald" title="Thème Forêt Zen (Niv. 2)">🌿</button>
+                    <button class="theme-btn" data-theme-target="sakura" title="Thème Sakura (Niv. 3)">🌸</button>
+                    <button class="theme-btn" data-theme-target="ocean" title="Thème Abysses (Niv. 4)">🌊</button>
+                    <button class="theme-btn" data-theme-target="cyber" title="Thème Cyberpunk (Niv. 5)">⚡</button>
+                    <button class="theme-btn" data-theme-target="royal" title="Thème Prestige Or & Onyx (Niv. 6)">👑</button>
                 </div>
 
                 <button id="btn-install" class="nav-icon-btn install-pill-btn" title="Installer l'application">
@@ -325,6 +331,18 @@
                 </div>
             </div>
 
+            <!-- Progression XP & Récompenses débloquées -->
+            <div class="victory-xp-box" id="victory-xp-box">
+                <div class="victory-xp-top">
+                    <span id="vic-rank-label">Niv. 1 • Apprenti Logique</span>
+                    <span class="victory-xp-gain" id="vic-xp-gained">+50 XP</span>
+                </div>
+                <div class="profile-xp-bar">
+                    <div class="profile-xp-fill" id="vic-xp-fill" style="width: 20%"></div>
+                </div>
+                <div id="vic-unlocked-list" class="victory-unlocked-list"></div>
+            </div>
+
             <div class="modal-actions-stack">
                 <button id="btn-victory-new" class="primary-btn">Jouer une nouvelle partie</button>
             </div>
@@ -399,11 +417,20 @@
                         <div class="profile-rank-row">
                             <span class="profile-level-badge" id="profile-level-badge">Niv. 1</span>
                             <strong class="profile-rank-title" id="profile-rank-title">Apprenti Logique</strong>
+                            <span class="streak-pill" id="profile-streak-pill" title="Série de jours consécutifs">🔥 0 j</span>
                         </div>
                         <div class="profile-xp-bar">
                             <div class="profile-xp-fill" id="profile-xp-fill" style="width: 15%"></div>
                         </div>
-                        <small id="profile-xp-sub">0 victoire • 0 pts cumulés</small>
+                        <small id="profile-xp-sub">0 XP • 0 victoire</small>
+                    </div>
+                </div>
+
+                <!-- Galerie de Trophées & Récompenses -->
+                <div class="settings-section">
+                    <span class="settings-section-title" id="trophies-section-title">🏆 Trophées &amp; Récompenses (0/12)</span>
+                    <div class="trophies-grid" id="profile-trophies-grid">
+                        <!-- Généré dynamiquement par app.js -->
                     </div>
                 </div>
 
@@ -422,16 +449,21 @@
                             </div>
                         </div>
 
-                        <span class="profile-input-label">Choisir un avatar</span>
+                        <span class="profile-input-label">Choisir un avatar (certains se débloquent par niveau)</span>
                         <div class="avatar-picker-grid" id="avatar-picker-grid">
-                            <button type="button" class="avatar-choice active" data-avatar="🧠">🧠</button>
-                            <button type="button" class="avatar-choice" data-avatar="🦊">🦊</button>
-                            <button type="button" class="avatar-choice" data-avatar="🦉">🦉</button>
-                            <button type="button" class="avatar-choice" data-avatar="🐯">🐯</button>
-                            <button type="button" class="avatar-choice" data-avatar="👑">👑</button>
-                            <button type="button" class="avatar-choice" data-avatar="🚀">🚀</button>
-                            <button type="button" class="avatar-choice" data-avatar="⚡">⚡</button>
-                            <button type="button" class="avatar-choice" data-avatar="🐉">🐉</button>
+                            <button type="button" class="avatar-choice active" data-avatar="🧠" data-req-level="1">🧠</button>
+                            <button type="button" class="avatar-choice" data-avatar="🦊" data-req-level="1">🦊</button>
+                            <button type="button" class="avatar-choice" data-avatar="🦉" data-req-level="1">🦉</button>
+                            <button type="button" class="avatar-choice" data-avatar="🐯" data-req-level="1">🐯</button>
+                            <button type="button" class="avatar-choice" data-avatar="🐼" data-req-level="2" title="Débloqué au Niv. 2">🐼</button>
+                            <button type="button" class="avatar-choice" data-avatar="🦄" data-req-level="3" title="Débloqué au Niv. 3">🦄</button>
+                            <button type="button" class="avatar-choice" data-avatar="🧙‍♂️" data-req-level="4" title="Débloqué au Niv. 4">🧙‍♂️</button>
+                            <button type="button" class="avatar-choice" data-avatar="🤖" data-req-level="5" title="Débloqué au Niv. 5">🤖</button>
+                            <button type="button" class="avatar-choice" data-avatar="👑" data-req-level="1">👑</button>
+                            <button type="button" class="avatar-choice" data-avatar="🚀" data-req-level="1">🚀</button>
+                            <button type="button" class="avatar-choice" data-avatar="⚡" data-req-level="1">⚡</button>
+                            <button type="button" class="avatar-choice" data-avatar="🐉" data-req-level="1">🐉</button>
+                            <button type="button" class="avatar-choice" data-avatar="💎" data-req-level="6" title="Débloqué au Niv. 6">💎</button>
                         </div>
                     </div>
                 </div>
@@ -501,25 +533,50 @@
 
                 <!-- Section Apparence / Thème (très pratique sur mobile) -->
                 <div class="settings-section">
-                    <span class="settings-section-title">Apparence</span>
+                    <span class="settings-section-title">Apparence &amp; Thèmes Récompenses</span>
                     <div class="settings-theme-grid" role="group" aria-label="Thème visuel">
-                        <button type="button" class="theme-btn settings-theme-choice active" data-theme-target="light">☀️ Clair</button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="sepia">📜 Sépia</button>
-                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="dark">🌙 Sombre</button>
+                        <button type="button" class="theme-btn settings-theme-choice active" data-theme-target="light"><span>☀️ Clair</span><small class="theme-lock-tag">Base</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="sepia"><span>📜 Sépia</span><small class="theme-lock-tag">Base</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="dark"><span>🌙 Sombre</span><small class="theme-lock-tag">Base</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="oled"><span>🌑 OLED Pur</span><small class="theme-lock-tag">Base</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="emerald"><span>🌿 Forêt Zen</span><small class="theme-lock-tag" data-theme-badge="emerald">Niv. 2</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="sakura"><span>🌸 Sakura</span><small class="theme-lock-tag" data-theme-badge="sakura">Niv. 3</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="ocean"><span>🌊 Abysses</span><small class="theme-lock-tag" data-theme-badge="ocean">Niv. 4</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="cyber"><span>⚡ Cyberpunk</span><small class="theme-lock-tag" data-theme-badge="cyber">Niv. 5</small></button>
+                        <button type="button" class="theme-btn settings-theme-choice" data-theme-target="royal"><span>👑 Or &amp; Onyx</span><small class="theme-lock-tag" data-theme-badge="royal">Niv. 6</small></button>
                     </div>
                 </div>
 
                 <!-- Section Son & Retours -->
                 <div class="settings-section">
-                    <span class="settings-section-title">Son & Retours</span>
+                    <span class="settings-section-title">Son &amp; Ambiances Audio</span>
                     <div class="settings-group-card">
                         <label class="setting-row">
                             <div class="setting-text">
                                 <strong>Effets sonores</strong>
-                                <small>Sons Marimba & Kalimba (touche M)</small>
+                                <small>Activer les sons tactiles (touche M)</small>
                             </div>
                             <input type="checkbox" class="toggle-switch" id="set-sound-enabled" checked>
                         </label>
+
+                        <div class="sound-pack-grid" id="sound-pack-grid" role="group" aria-label="Ambiance sonore">
+                            <button type="button" class="sound-pack-btn active" data-sound-pack="marimba" data-req-level="1">
+                                <span>🪵 Bois &amp; Kalimba</span>
+                                <small class="theme-lock-tag">Base</small>
+                            </button>
+                            <button type="button" class="sound-pack-btn" data-sound-pack="piano" data-req-level="1">
+                                <span>🎹 Piano Doux</span>
+                                <small class="theme-lock-tag">Base</small>
+                            </button>
+                            <button type="button" class="sound-pack-btn" data-sound-pack="crystal" data-req-level="2">
+                                <span>🎐 Cristal Zen</span>
+                                <small class="theme-lock-tag" data-pack-badge="crystal">Niv. 2</small>
+                            </button>
+                            <button type="button" class="sound-pack-btn" data-sound-pack="retro" data-req-level="4">
+                                <span>🕹️ Arcade 8-Bit</span>
+                                <small class="theme-lock-tag" data-pack-badge="retro">Niv. 4</small>
+                            </button>
+                        </div>
 
                         <label class="setting-row">
                             <div class="setting-text">
@@ -623,6 +680,15 @@
             <div class="modal-footer">
                 <button class="primary-btn" data-close-modal="modal-install-pwa">J'ai compris</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Toast de Récompense / Trophée débloqué -->
+    <div id="reward-toast" class="reward-toast hidden" role="status" aria-live="polite">
+        <span class="reward-toast-icon" id="reward-toast-icon">🏆</span>
+        <div class="reward-toast-body">
+            <strong id="reward-toast-title">Nouveau Trophée débloqué !</strong>
+            <span id="reward-toast-desc">Sans Faute (+75 XP)</span>
         </div>
     </div>
 

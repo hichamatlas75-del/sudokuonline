@@ -85,6 +85,168 @@
     --digit-note: #9ca3af;
 }
 
+/* 🌑 Thème OLED Noir Pur (Économie batterie AMOLED & contraste absolu) */
+[data-theme="oled"] {
+    --bg-page: #000000;
+    --bg-surface: #0a0a0c;
+    --bg-navbar: #050507;
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --accent-primary: #38bdf8;
+    --accent-hover: #0284c7;
+    --accent-soft: #18181b;
+
+    --board-border-outer: #52525b;
+    --board-border-box: #52525b;
+    --board-border-cell: #27272a;
+    --cell-bg: #09090b;
+    --cell-selected: #0c4a6e;
+    --cell-related: #141418;
+    --cell-same-num: #075985;
+    --cell-error-bg: #450a0a;
+    --cell-hint-bg: #052e16;
+
+    --digit-given: #f4f4f5;
+    --digit-user: #38bdf8;
+    --digit-error: #f87171;
+    --digit-note: #71717a;
+}
+
+/* 🌿 Thème Forêt Zen / Matcha (Débloqué Niv. 2) */
+[data-theme="emerald"] {
+    --bg-page: #ecfdf5;
+    --bg-surface: #f8fafc;
+    --bg-navbar: #d1fae5;
+    --text-primary: #064e3b;
+    --text-secondary: #047857;
+    --accent-primary: #059669;
+    --accent-hover: #047857;
+    --accent-soft: #d1fae5;
+
+    --board-border-outer: #065f46;
+    --board-border-box: #065f46;
+    --board-border-cell: #a7f3d0;
+    --cell-bg: #ffffff;
+    --cell-selected: #6ee7b7;
+    --cell-related: #e6f9f0;
+    --cell-same-num: #a7f3d0;
+    --cell-error-bg: #fecdd3;
+    --cell-hint-bg: #fef08a;
+
+    --digit-given: #064e3b;
+    --digit-user: #059669;
+    --digit-error: #e11d48;
+    --digit-note: #047857;
+}
+
+/* 🌸 Thème Sakura Pastel (Débloqué Niv. 3) */
+[data-theme="sakura"] {
+    --bg-page: #fff1f2;
+    --bg-surface: #ffffff;
+    --bg-navbar: #ffe4e6;
+    --text-primary: #4c0519;
+    --text-secondary: #9f1239;
+    --accent-primary: #e11d48;
+    --accent-hover: #be123c;
+    --accent-soft: #ffe4e6;
+
+    --board-border-outer: #881337;
+    --board-border-box: #881337;
+    --board-border-cell: #fecdd3;
+    --cell-bg: #fffafb;
+    --cell-selected: #fda4af;
+    --cell-related: #fff1f2;
+    --cell-same-num: #fecdd3;
+    --cell-error-bg: #fee2e2;
+    --cell-hint-bg: #d1fae5;
+
+    --digit-given: #4c0519;
+    --digit-user: #e11d48;
+    --digit-error: #b91c1c;
+    --digit-note: #9f1239;
+}
+
+/* 🌊 Thème Océan Abysses (Débloqué Niv. 4) */
+[data-theme="ocean"] {
+    --bg-page: #071324;
+    --bg-surface: #0d2137;
+    --bg-navbar: #0b1b2e;
+    --text-primary: #e0f2fe;
+    --text-secondary: #7dd3fc;
+    --accent-primary: #06b6d4;
+    --accent-hover: #0891b2;
+    --accent-soft: #16324f;
+
+    --board-border-outer: #38bdf8;
+    --board-border-box: #0284c7;
+    --board-border-cell: #1e3a5f;
+    --cell-bg: #0d2137;
+    --cell-selected: #0e7490;
+    --cell-related: #132d4a;
+    --cell-same-num: #155e75;
+    --cell-error-bg: #5c1f24;
+    --cell-hint-bg: #064e3b;
+
+    --digit-given: #f0f9ff;
+    --digit-user: #22d3ee;
+    --digit-error: #fb7185;
+    --digit-note: #7dd3fc;
+}
+
+/* ⚡ Thème Cyberpunk Néon (Débloqué Niv. 5) */
+[data-theme="cyber"] {
+    --bg-page: #0d0221;
+    --bg-surface: #190736;
+    --bg-navbar: #14052b;
+    --text-primary: #f5d0fe;
+    --text-secondary: #c084fc;
+    --accent-primary: #f43f5e;
+    --accent-hover: #e11d48;
+    --accent-soft: #2a0f54;
+
+    --board-border-outer: #f43f5e;
+    --board-border-box: #c026d3;
+    --board-border-cell: #3b176e;
+    --cell-bg: #15062e;
+    --cell-selected: #701a75;
+    --cell-related: #240c47;
+    --cell-same-num: #4c1d95;
+    --cell-error-bg: #6b0f1a;
+    --cell-hint-bg: #064e3b;
+
+    --digit-given: #fae8ff;
+    --digit-user: #22d3ee;
+    --digit-error: #ff4d6d;
+    --digit-note: #a855f7;
+}
+
+/* 👑 Thème Prestige Or & Onyx (Débloqué Niv. 6 Grand Maître) */
+[data-theme="royal"] {
+    --bg-page: #121110;
+    --bg-surface: #1c1a17;
+    --bg-navbar: #181613;
+    --text-primary: #fef3c7;
+    --text-secondary: #d6c5a3;
+    --accent-primary: #eab308;
+    --accent-hover: #ca8a04;
+    --accent-soft: #2c2821;
+
+    --board-border-outer: #eab308;
+    --board-border-box: #ca8a04;
+    --board-border-cell: #383228;
+    --cell-bg: #1c1a17;
+    --cell-selected: #574415;
+    --cell-related: #26231d;
+    --cell-same-num: #423310;
+    --cell-error-bg: #5c1f24;
+    --cell-hint-bg: #14532d;
+
+    --digit-given: #fef9c3;
+    --digit-user: #facc15;
+    --digit-error: #f87171;
+    --digit-note: #a8997c;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -1018,18 +1180,203 @@ body {
 .settings-theme-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 6px;
     background: var(--accent-soft);
-    padding: 4px;
-    border-radius: 10px;
+    padding: 6px;
+    border-radius: 12px;
 }
 .settings-theme-choice {
+    position: relative;
     padding: 8px 6px;
     border-radius: 8px;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-primary);
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border: 1.5px solid transparent;
+}
+.settings-theme-choice.active {
+    border-color: var(--accent-primary);
+}
+.settings-theme-choice.theme-locked,
+.theme-btn.theme-locked,
+.avatar-choice.avatar-locked,
+.sound-pack-btn.pack-locked {
+    opacity: 0.55;
+}
+.theme-lock-tag {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+/* Sélecteur de Pack Sonore */
+.sound-pack-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    padding: 10px 0 6px;
+    border-bottom: 1px solid var(--board-border-cell);
+}
+.sound-pack-btn {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1.5px solid transparent;
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+.sound-pack-btn.active {
+    border-color: var(--accent-primary);
+    background: var(--cell-selected);
+    color: var(--accent-primary);
+    font-weight: 700;
+}
+
+/* Série Quotidienne & Galerie de Trophées */
+.streak-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #ffffff;
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+.trophies-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+.trophy-card {
+    background: var(--accent-soft);
+    border: 1.5px solid transparent;
+    border-radius: 11px;
+    padding: 9px 10px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    transition: all 0.2s ease;
+}
+.trophy-card.unlocked {
+    background: var(--bg-surface);
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-sm);
+}
+.trophy-card.locked {
+    opacity: 0.55;
+    filter: grayscale(0.85);
+}
+.trophy-emoji {
+    font-size: 1.45rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.trophy-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.trophy-info strong {
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+.trophy-info small {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    line-height: 1.25;
+}
+.trophy-xp-tag {
+    font-size: 0.64rem;
+    font-weight: 800;
+    color: var(--accent-primary);
+}
+
+/* Bannière XP dans la modale de Victoire */
+.victory-xp-box {
+    background: var(--accent-soft);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.victory-xp-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+.victory-xp-gain {
+    color: #16a34a;
+    font-weight: 800;
+}
+.victory-unlocked-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+.victory-unlock-pill {
+    background: linear-gradient(135deg, #f59e0b, #eab308);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 4px 9px;
+    border-radius: 999px;
+}
+
+/* Toast de déblocage de Trophée / Niveau */
+.reward-toast {
+    position: fixed;
+    top: calc(14px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 260;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 2px solid #eab308;
+    border-radius: 14px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+    max-width: 92vw;
+    animation: slideDown 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.reward-toast-icon {
+    font-size: 1.7rem;
+    line-height: 1;
+}
+.reward-toast-body strong {
+    display: block;
+    font-size: 0.86rem;
+    color: #ca8a04;
+}
+.reward-toast-body span {
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .settings-group-card {

@@ -18,6 +18,53 @@ class SudokuApp {
         pulseHint: 'cell-hint-flash'
     };
 
+    // Thèmes visuels disponibles immédiatement
+    static THEMES_META = {
+        light:   { label: '☀️ Clair',       reqLevel: 1, tag: 'Classique' },
+        sepia:   { label: '📜 Sépia',       reqLevel: 1, tag: 'Lecture' },
+        dark:    { label: '🌙 Sombre',      reqLevel: 1, tag: 'Nuit' },
+        oled:    { label: '🌑 OLED Pur',    reqLevel: 1, tag: 'AMOLED' },
+        emerald: { label: '🌿 Forêt Zen',   reqLevel: 1, tag: 'Matcha' },
+        sakura:  { label: '🌸 Sakura',      reqLevel: 1, tag: 'Pastel' },
+        ocean:   { label: '🌊 Abysses',     reqLevel: 1, tag: 'Océan' },
+        cyber:   { label: '⚡ Cyberpunk',   reqLevel: 1, tag: 'Néon' },
+        royal:   { label: '👑 Or & Onyx',   reqLevel: 1, tag: 'Prestige' }
+    };
+
+    // Packs sonores disponibles immédiatement
+    static SOUND_PACKS_META = {
+        marimba: { label: '🪵 Bois & Kalimba', reqLevel: 1 },
+        piano:   { label: '🎹 Piano Doux',     reqLevel: 1 },
+        crystal: { label: '🎐 Cristal Zen',    reqLevel: 1 },
+        retro:   { label: '🕹️ Arcade 8-Bit',   reqLevel: 1 }
+    };
+
+    // Paliers de Niveau (XP) & Récompenses associées
+    static RANKS = [
+        { level: 1, minXp: 0,    nextXp: 100,  title: 'Apprenti Logique',   reward: 'Thèmes de base & OLED' },
+        { level: 2, minXp: 100,  nextXp: 300,  title: 'Initié Sudoku',      reward: '🌿 Thème Forêt Zen • 🎐 Son Cristal • 🐼' },
+        { level: 3, minXp: 300,  nextXp: 650,  title: 'Tacticien',          reward: '🌸 Thème Sakura • 🦄 Avatar Licorne' },
+        { level: 4, minXp: 650,  nextXp: 1200, title: 'Expert Confirmé',    reward: '🌊 Thème Abysses • 🕹️ Son 8-Bit • 🧙‍♂️' },
+        { level: 5, minXp: 1200, nextXp: 2000, title: 'Maître des Chiffres',reward: '⚡ Thème Cyberpunk • 🤖 Avatar Robot' },
+        { level: 6, minXp: 2000, nextXp: 3000, title: 'Grand Maître Absolu',reward: '👑 Thème Prestige Or & Onyx • 💎' }
+    ];
+
+    // Catalogue des 12 Trophées / Succès
+    static TROPHIES = [
+        { id: 'first_win',    icon: '🌟', title: 'Première Étincelle', desc: 'Remporter votre 1re victoire',               xp: 50 },
+        { id: 'flawless_win', icon: '🎯', title: 'Sans Faute',         desc: 'Gagner une partie avec 0 erreur',            xp: 75 },
+        { id: 'speed_demon',  icon: '⚡', title: 'Éclair Logique',     desc: 'Gagner une grille en moins de 3 min',        xp: 100 },
+        { id: 'no_assist',    icon: '🧠', title: 'Puriste',            desc: 'Gagner en Difficile+ sans indice ni notes auto', xp: 150 },
+        { id: 'combo_15',     icon: '🔥', title: 'Combo Royal',        desc: 'Enchaîner ×15 chiffres justes d\'affilée',   xp: 100 },
+        { id: 'streak_3',     icon: '📅', title: 'Fidèle au Poste',    desc: 'Série de 3 jours joués consécutifs',         xp: 120 },
+        { id: 'streak_7',     icon: '🗓️', title: 'Semaine Parfaite',   desc: 'Série de 7 jours joués consécutifs',         xp: 250 },
+        { id: 'wins_10',      icon: '🏅', title: 'Vétéran',            desc: 'Remporter 10 parties au total',              xp: 150 },
+        { id: 'score_10k',    icon: '🏆', title: 'Centurion',          desc: 'Atteindre 10 000 pts sur une partie',        xp: 180 },
+        { id: 'all_diffs',    icon: '🌈', title: 'Polyvalent',         desc: 'Gagner dans les 6 niveaux de difficulté',    xp: 300 },
+        { id: 'extreme_win',  icon: '⚔️', title: 'Dompteur Extrême',   desc: 'Vaincre une grille de niveau Extrême',       xp: 250 },
+        { id: 'wins_50',      icon: '👑', title: 'Légende Vivante',    desc: 'Remporter 50 parties au total',              xp: 500 }
+    ];
+
     constructor() {
         this.settings = this.loadSettings();
         this.stats = this.loadStats();
@@ -49,8 +96,14 @@ class SudokuApp {
         this.isGameOver = false;
         this.isWon = false;
 
-        // Suivi des lignes/colonnes/blocs déjà complétés pour éviter de rejouer l'animation ou les points bonus
+        // Suivi des lignes/colonnes/blocs et des cases déjà récompensés pour éviter le "score farming"
         this.completedUnits = new Set();
+        this.scoredCells = new Set();
+        this.maxStreakInGame = 0;
+        this.usedHintInGame = false;
+        this.usedAutoNotesInGame = false;
+        this._toastQueue = [];
+        this._toastActive = false;
 
         this.timerInterval = null;
         this.deviceId = Math.random().toString(36).slice(2, 10);
@@ -61,7 +114,8 @@ class SudokuApp {
         this.initDOMReferences();
         this.audio = new SudokuAudio();
         this.applyFeedbackSettings();
-        this.applyTheme(this.settings.theme);
+        this.syncUnlockablesUI();
+        this.applyTheme(this.settings.theme, false);
         this.syncSettingsUI();
         this.createBoardDOM();
         this.bindEvents();
@@ -263,7 +317,14 @@ class SudokuApp {
         });
 
         document.getElementById('btn-settings').addEventListener('click', () => {
+            this.syncUnlockablesUI();
             this.openModal('modal-settings');
+        });
+
+        document.querySelectorAll('.sound-pack-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.applySoundPack(btn.dataset.soundPack, true);
+            });
         });
 
         document.querySelectorAll('[data-close-modal]').forEach(btn => {
@@ -371,8 +432,14 @@ class SudokuApp {
         this.isAutoNotesOn = false;
         this.lockedDigit = null;
         this.completedUnits = new Set();
+        this.scoredCells = new Set();
+        this.maxStreakInGame = 0;
+        this.usedHintInGame = false;
+        this.usedAutoNotesInGame = false;
+        this.rebuildScoredCellsFromBoard();
         this.updateCompletedUnitsSnapshot(false);
 
+        this.syncPauseUI();
         this.hintBanner.classList.add('hidden');
 
         // Enregistrer la partie commencée dans les statistiques
@@ -413,7 +480,13 @@ class SudokuApp {
         this.isWon = false;
         this.isAutoNotesOn = false;
         this.completedUnits = new Set();
+        this.scoredCells = new Set();
+        this.maxStreakInGame = 0;
+        this.usedHintInGame = false;
+        this.usedAutoNotesInGame = false;
+        this.rebuildScoredCellsFromBoard();
         this.updateCompletedUnitsSnapshot(false);
+        this.syncPauseUI();
         this.hintBanner.classList.add('hidden');
 
         this.startTimer();
@@ -519,12 +592,20 @@ class SudokuApp {
         const isCorrect = (num === this.solution[row][col]);
 
         if (isCorrect) {
-            this.streak += 1;
-            // Gain de points façon Sudoku.com (base * multiplicateur * facteur vitesse + bonus de série)
-            const speedBonus = Math.max(10, 60 - Math.floor(this.elapsedSeconds / 15));
-            const streakBonus = this.streak >= 2 ? Math.min(5, this.streak - 1) * 15 : 0;
-            this.score += (speedBonus + streakBonus) * this.multiplier;
-            this.audio.playPlace(num, this.streak);
+            const cellKey = `${row}-${col}`;
+            const alreadyScored = this.scoredCells.has(cellKey);
+            if (!alreadyScored) {
+                this.scoredCells.add(cellKey);
+                this.streak += 1;
+                if (this.streak > (this.maxStreakInGame || 0)) {
+                    this.maxStreakInGame = this.streak;
+                }
+                // Gain de points façon Sudoku.com (base * multiplicateur * facteur vitesse + bonus de série)
+                const speedBonus = Math.max(10, 60 - Math.floor(this.elapsedSeconds / 15));
+                const streakBonus = this.streak >= 2 ? Math.min(5, this.streak - 1) * 15 : 0;
+                this.score += (speedBonus + streakBonus) * this.multiplier;
+            }
+            this.audio.playPlace(num, Math.max(1, this.streak));
             this.haptic(10);
 
             // Suppression automatique des notes dans la même ligne, colonne et bloc 3x3
@@ -588,16 +669,18 @@ class SudokuApp {
                 });
             }
             const gained = this.score - scoreBefore;
-            let badgeText = '';
-            if (unitsDone > 0 && this.streak >= 2) {
-                badgeText = `✨ Unité • 🔥×${this.streak}`;
-            } else if (unitsDone > 0) {
-                badgeText = '✨ Unité !';
-            } else if (this.streak >= 2) {
-                badgeText = `🔥 ×${this.streak}`;
+            if (gained > 0) {
+                let badgeText = '';
+                if (unitsDone > 0 && this.streak >= 2) {
+                    badgeText = `✨ Unité • 🔥×${this.streak}`;
+                } else if (unitsDone > 0) {
+                    badgeText = '✨ Unité !';
+                } else if (this.streak >= 2) {
+                    badgeText = `🔥 ×${this.streak}`;
+                }
+                SudokuFX.floatText(this.boardWrapper, targetCellEl, `+${gained}`, unitsDone > 0 ? 'bonus' : '', badgeText);
+                this.bump(this.scoreDisplay, 'pulse-score');
             }
-            SudokuFX.floatText(this.boardWrapper, targetCellEl, `+${gained}`, unitsDone > 0 ? 'bonus' : '', badgeText);
-            this.bump(this.scoreDisplay, 'pulse-score');
         } else if (!errorCounted) {
             this.animateCell(row, col, 'pop');
         }
@@ -631,8 +714,11 @@ class SudokuApp {
         const { row, col } = this.selectedCell;
         if (this.initialBoard[row][col] !== 0) return;
 
-        // Sur Sudoku.com, on ne gomme pas un chiffre déjà validé comme juste si autoCheckErrors est actif,
-        // sauf si l'utilisateur souhaite tout de même vider ses notes. Permettons d'effacer tout chiffre posé par le joueur :
+        // Ne pas effacer un chiffre déjà validé comme juste lorsque la vérification auto est active
+        if (this.settings.autoCheckErrors && this.board[row][col] === this.solution[row][col]) {
+            return;
+        }
+
         if (this.board[row][col] === 0 && this.notes[row][col].length === 0) return;
 
         this.pushHistory();
@@ -652,7 +738,9 @@ class SudokuApp {
             notes: this.notes.map(row => row.map(cell => [...cell])),
             isAutoNotesOn: !!this.isAutoNotesOn,
             score: this.score,
-            streak: this.streak
+            streak: this.streak,
+            completedUnits: [...this.completedUnits],
+            scoredCells: [...this.scoredCells]
         });
         if (this.history.length > 60) {
             this.history.shift();
@@ -675,8 +763,13 @@ class SudokuApp {
         this.isAutoNotesOn = !!prev.isAutoNotesOn;
         this.score = prev.score;
         this.streak = prev.streak ?? 0;
+        if (Array.isArray(prev.completedUnits)) {
+            this.completedUnits = new Set(prev.completedUnits);
+        }
+        if (Array.isArray(prev.scoredCells)) {
+            this.scoredCells = new Set(prev.scoredCells);
+        }
 
-        this.updateCompletedUnitsSnapshot(false);
         this.audio.playUndo();
         this.render();
         this.saveGameState();
@@ -724,6 +817,7 @@ class SudokuApp {
             this.audio.playToggle(false);
         } else {
             this.isAutoNotesOn = true;
+            this.usedAutoNotesInGame = true;
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) {
                     if (this.board[r][c] === 0) {
@@ -759,10 +853,12 @@ class SudokuApp {
 
         this.pushHistory();
         this.hintsRemaining -= 1;
+        this.usedHintInGame = true;
 
         this.selectedCell = { row: hint.row, col: hint.col };
         this.board[hint.row][hint.col] = hint.value;
         this.notes[hint.row][hint.col] = [];
+        this.scoredCells.add(`${hint.row}-${hint.col}`);
 
         if (this.settings.autoRemoveNotes) {
             this.removePeerNotes(hint.row, hint.col, hint.value);
@@ -870,7 +966,8 @@ class SudokuApp {
             }
         }
 
-        this.completedUnits = currentComplete;
+        // Conserver toutes les unités déjà récompensées pour éviter le "score farming"
+        currentComplete.forEach(key => this.completedUnits.add(key));
 
         if (animateNew && newlyCompletedCells.length > 0) {
             newlyCompletedCells.forEach(([r, c, delay]) => {
@@ -921,6 +1018,45 @@ class SudokuApp {
         }
         this.saveStats();
 
+        // --- Calcul Récompenses : Série Quotidienne, XP, Trophées & Passage de Niveau ---
+        const rankBefore = this.getProfileRankInfo();
+        this.updateDailyStreakOnWin();
+
+        const baseXpByDiff = { easy: 50, medium: 90, hard: 140, expert: 200, master: 280, extreme: 400 };
+        let earnedXp = baseXpByDiff[this.difficulty] || 50;
+        if (this.mistakes === 0) earnedXp = Math.round(earnedXp * 1.5);
+        if (!this.usedHintInGame && !this.usedAutoNotesInGame) earnedXp = Math.round(earnedXp * 1.25);
+        const streakCount = (this.profile.dailyStreak && this.profile.dailyStreak.count) || 1;
+        if (streakCount >= 2) {
+            earnedXp = Math.round(earnedXp * (1 + Math.min(0.5, (streakCount - 1) * 0.1)));
+        }
+
+        const newlyUnlockedTrophies = this.evaluateTrophiesOnWin();
+        let trophyXp = 0;
+        newlyUnlockedTrophies.forEach(t => { trophyXp += t.xp; });
+        const totalGainedXp = earnedXp + trophyXp;
+
+        this.profile.xp = (Number(this.profile.xp) || rankBefore.xp) + totalGainedXp;
+        this.saveProfile();
+
+        const rankAfter = this.getProfileRankInfo();
+        const leveledUp = rankAfter.level > rankBefore.level;
+        this.syncUnlockablesUI();
+        this.syncProfileUI();
+
+        if (this.liveSyncReady && !this.isApplyingRemote) {
+            this.stateRev = Date.now();
+            this.pushLiveSyncNow(true);
+        }
+
+        // Notifications de déblocage (Trophées & Passage de niveau)
+        newlyUnlockedTrophies.forEach(t => {
+            this.enqueueRewardToast(t.icon, `Trophée débloqué : ${t.title}`, `${t.desc} (+${t.xp} XP)`);
+        });
+        if (leveledUp) {
+            this.enqueueRewardToast('🎉', `Niveau ${rankAfter.level} atteint : ${rankAfter.title} !`, `Débloqué : ${rankAfter.reward}`);
+        }
+
         // Remplir la modale de victoire
         const diffLabel = SudokuEngine.DIFFICULTIES[this.difficulty].label;
         document.getElementById('vic-diff').textContent = diffLabel;
@@ -930,6 +1066,29 @@ class SudokuApp {
         document.getElementById('victory-record-badge').textContent = isNewRecord
             ? '🎉 Nouveau record de temps pour ce niveau !'
             : 'Vous avez résolu la grille avec succès !';
+
+        const vicRankLabel = document.getElementById('vic-rank-label');
+        const vicXpGained = document.getElementById('vic-xp-gained');
+        const vicXpFill = document.getElementById('vic-xp-fill');
+        const vicUnlockedList = document.getElementById('vic-unlocked-list');
+        if (vicRankLabel) vicRankLabel.textContent = `Niv. ${rankAfter.level} • ${rankAfter.title} (🔥 ${streakCount}j)`;
+        if (vicXpGained) vicXpGained.textContent = `+${totalGainedXp} XP`;
+        if (vicXpFill) vicXpFill.style.width = `${rankAfter.progressPct}%`;
+        if (vicUnlockedList) {
+            vicUnlockedList.innerHTML = '';
+            if (leveledUp) {
+                const pill = document.createElement('span');
+                pill.className = 'victory-unlock-pill';
+                pill.textContent = `⬆️ Niveau ${rankAfter.level} : ${rankAfter.reward}`;
+                vicUnlockedList.appendChild(pill);
+            }
+            newlyUnlockedTrophies.forEach(t => {
+                const pill = document.createElement('span');
+                pill.className = 'victory-unlock-pill';
+                pill.textContent = `${t.icon} ${t.title} (+${t.xp} XP)`;
+                vicUnlockedList.appendChild(pill);
+            });
+        }
 
         this.audio.playVictory();
         this.haptic([60, 40, 60, 40, 120]);
@@ -1093,7 +1252,11 @@ class SudokuApp {
         // Ignorer si une modale est ouverte
         if (document.querySelector('.modal-backdrop:not(.hidden)')) {
             if (e.key === 'Escape') {
-                document.querySelectorAll('.modal-backdrop:not(.hidden)').forEach(m => m.classList.add('hidden'));
+                document.querySelectorAll('.modal-backdrop:not(.hidden)').forEach(m => {
+                    if (m.id !== 'modal-game-over') {
+                        m.classList.add('hidden');
+                    }
+                });
             }
             return;
         }
@@ -1157,6 +1320,7 @@ class SudokuApp {
     applyFeedbackSettings() {
         this.audio.setEnabled(this.settings.soundEnabled);
         this.audio.setVolume(this.settings.soundVolume);
+        this.audio.setSoundPack(this.settings.soundPack || 'marimba');
         SudokuFX.enabled = !!this.settings.animationsEnabled;
         document.documentElement.setAttribute('data-anim', this.settings.animationsEnabled ? 'on' : 'off');
         this.updateSoundButton();
@@ -1275,19 +1439,23 @@ class SudokuApp {
         }
     }
 
+    syncPauseUI() {
+        if (!this.pauseOverlay) return;
+        this.pauseOverlay.classList.toggle('hidden', !this.isPaused);
+        if (this.iconPause) this.iconPause.classList.toggle('hidden', this.isPaused);
+        if (this.iconPlay) this.iconPlay.classList.toggle('hidden', !this.isPaused);
+
+        if (this.isPaused && this.pauseStatsSummary) {
+            const diffObj = SudokuEngine.DIFFICULTIES[this.difficulty] || SudokuEngine.DIFFICULTIES.easy;
+            this.pauseStatsSummary.textContent = `Difficulté : ${diffObj.label} • Temps : ${this.formatTime(this.elapsedSeconds)}`;
+        }
+    }
+
     togglePause(forceState = null) {
         if (this.isGameOver || this.isWon) return;
         this.isPaused = forceState !== null ? forceState : !this.isPaused;
         this.audio.playPause(this.isPaused);
-
-        this.pauseOverlay.classList.toggle('hidden', !this.isPaused);
-        this.iconPause.classList.toggle('hidden', this.isPaused);
-        this.iconPlay.classList.toggle('hidden', !this.isPaused);
-
-        if (this.isPaused) {
-            const diffLabel = SudokuEngine.DIFFICULTIES[this.difficulty].label;
-            this.pauseStatsSummary.textContent = `Difficulté : ${diffLabel} • Temps : ${this.formatTime(this.elapsedSeconds)}`;
-        }
+        this.syncPauseUI();
     }
 
     formatTime(totalSec) {
@@ -1298,9 +1466,22 @@ class SudokuApp {
     }
 
     /**
-     * Thèmes & Modales
+     * Thèmes, Packs Sonores, Déblocables & Modales
      */
-    applyTheme(themeName) {
+    applyTheme(themeName, userInitiated = true) {
+        const meta = SudokuApp.THEMES_META[themeName] || SudokuApp.THEMES_META.light;
+        const rank = this.getProfileRankInfo();
+        if (meta.reqLevel > rank.level) {
+            if (userInitiated) {
+                this.audio.playBlocked();
+                this.haptic([20, 30, 20]);
+                this.enqueueRewardToast('🔒', `Thème ${meta.label} verrouillé`, `Atteignez le Niveau ${meta.reqLevel} pour débloquer ce thème !`, false);
+            } else {
+                themeName = 'light';
+            }
+            if (userInitiated) return;
+        }
+
         document.documentElement.setAttribute('data-theme', themeName);
         this.settings.theme = themeName;
         const themeMeta = document.querySelector('meta[name="theme-color"]');
@@ -1312,6 +1493,98 @@ class SudokuApp {
             btn.classList.toggle('active', btn.dataset.themeTarget === themeName);
         });
         this.saveSettings();
+    }
+
+    applySoundPack(packName, userInitiated = true) {
+        const meta = SudokuApp.SOUND_PACKS_META[packName] || SudokuApp.SOUND_PACKS_META.marimba;
+        const rank = this.getProfileRankInfo();
+        if (meta.reqLevel > rank.level) {
+            if (userInitiated) {
+                this.audio.playBlocked();
+                this.haptic([20, 30, 20]);
+                this.enqueueRewardToast('🔒', `Pack ${meta.label} verrouillé`, `Atteignez le Niveau ${meta.reqLevel} pour débloquer ce pack sonore !`, false);
+            }
+            return;
+        }
+
+        this.settings.soundPack = packName;
+        this.audio.setSoundPack(packName);
+        this.saveSettings();
+        this.syncUnlockablesUI();
+        if (userInitiated) {
+            this.audio.unlock();
+            this.audio.playPlace(5, 2);
+        }
+    }
+
+    syncUnlockablesUI() {
+        const rank = this.getProfileRankInfo();
+        const curLevel = rank.level;
+
+        // Thèmes
+        this.themeBtns.forEach(btn => {
+            const key = btn.dataset.themeTarget;
+            const meta = SudokuApp.THEMES_META[key];
+            const locked = meta && meta.reqLevel > curLevel;
+            btn.classList.toggle('theme-locked', Boolean(locked));
+            const badge = btn.querySelector(`[data-theme-badge="${key}"]`);
+            if (badge && meta) {
+                badge.textContent = locked ? `🔒 Niv. ${meta.reqLevel}` : (meta.tag || '✓');
+            }
+        });
+
+        // Packs sonores
+        const currentPack = this.settings.soundPack || 'marimba';
+        document.querySelectorAll('.sound-pack-btn').forEach(btn => {
+            const pack = btn.dataset.soundPack;
+            const meta = SudokuApp.SOUND_PACKS_META[pack];
+            const req = meta ? meta.reqLevel : 1;
+            const locked = req > curLevel;
+            btn.classList.toggle('pack-locked', locked);
+            btn.classList.toggle('active', pack === currentPack);
+            const badge = btn.querySelector(`[data-pack-badge="${pack}"]`);
+            if (badge) {
+                badge.textContent = locked ? `🔒 Niv. ${req}` : '✓ Actif';
+            }
+        });
+
+        // Avatars
+        document.querySelectorAll('.avatar-choice').forEach(btn => {
+            const req = parseInt(btn.dataset.reqLevel || '1', 10);
+            btn.classList.toggle('avatar-locked', req > curLevel);
+        });
+    }
+
+    enqueueRewardToast(icon, title, desc, celebrate = true) {
+        this._toastQueue = this._toastQueue || [];
+        this._toastQueue.push({ icon, title, desc, celebrate });
+        this._processNextRewardToast();
+    }
+
+    _processNextRewardToast() {
+        if (this._toastActive || !this._toastQueue || this._toastQueue.length === 0) return;
+        const next = this._toastQueue.shift();
+        const toastEl = document.getElementById('reward-toast');
+        const iconEl = document.getElementById('reward-toast-icon');
+        const titleEl = document.getElementById('reward-toast-title');
+        const descEl = document.getElementById('reward-toast-desc');
+        if (!toastEl || !iconEl || !titleEl || !descEl) return;
+
+        this._toastActive = true;
+        iconEl.textContent = next.icon;
+        titleEl.textContent = next.title;
+        descEl.textContent = next.desc;
+        toastEl.classList.remove('hidden');
+
+        if (next.celebrate) {
+            this.audio.playAchievement();
+        }
+
+        setTimeout(() => {
+            toastEl.classList.add('hidden');
+            this._toastActive = false;
+            setTimeout(() => this._processNextRewardToast(), 250);
+        }, 3400);
     }
 
     openModal(id) {
@@ -1338,6 +1611,21 @@ class SudokuApp {
     }
 
     /**
+     * Reconstruit l'ensemble des cases ayant déjà attribué leurs points
+     */
+    rebuildScoredCellsFromBoard(savedList = null) {
+        this.scoredCells = new Set(Array.isArray(savedList) ? savedList : []);
+        if (!Array.isArray(this.board) || !Array.isArray(this.solution)) return;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (this.board[r] && this.solution[r] && this.board[r][c] !== 0 && this.board[r][c] === this.solution[r][c]) {
+                    this.scoredCells.add(`${r}-${c}`);
+                }
+            }
+        }
+    }
+
+    /**
      * Persistance localStorage (Partie en cours, Paramètres, Statistiques)
      */
     saveGameState(pushRemote = true) {
@@ -1359,7 +1647,9 @@ class SudokuApp {
             isNotesMode: this.isNotesMode,
             isAutoNotesOn: this.isAutoNotesOn,
             isFastMode: this.isFastMode,
-            lockedDigit: this.lockedDigit
+            lockedDigit: this.lockedDigit,
+            completedUnits: [...this.completedUnits],
+            scoredCells: [...this.scoredCells]
         };
         try {
             localStorage.setItem(SudokuApp.STORAGE_KEY_GAME, JSON.stringify(payload));
@@ -1393,6 +1683,8 @@ class SudokuApp {
             this.isAutoNotesOn = !!data.isAutoNotesOn;
             this.isFastMode = !!data.isFastMode;
             this.lockedDigit = data.lockedDigit ?? null;
+            this.completedUnits = new Set(Array.isArray(data.completedUnits) ? data.completedUnits : []);
+            this.rebuildScoredCellsFromBoard(data.scoredCells);
 
             if (data.selectedCell && typeof data.selectedCell.row === 'number' && typeof data.selectedCell.col === 'number') {
                 this.selectedCell = data.selectedCell;
@@ -1419,6 +1711,7 @@ class SudokuApp {
     loadSettings() {
         const defaults = {
             theme: 'light',
+            soundPack: 'marimba',
             mistakeLimit: true,
             autoCheckErrors: true,
             highlightDuplicates: true,
@@ -1542,6 +1835,9 @@ class SudokuApp {
             name: 'hicham',
             pin: '1234',
             avatar: '🧠',
+            xp: 0,
+            trophies: [],
+            dailyStreak: { count: 0, lastPlayedDate: null, bestStreak: 0 },
             autoCloudSync: true,
             lastCloudSync: null
         };
@@ -1550,6 +1846,10 @@ class SudokuApp {
             const merged = { ...defaults, ...saved };
             if (!merged.name || merged.name === 'Joueur') merged.name = 'hicham';
             if (!/^[0-9]{4}$/.test(merged.pin || '')) merged.pin = '1234';
+            if (!Array.isArray(merged.trophies)) merged.trophies = [];
+            if (!merged.dailyStreak || typeof merged.dailyStreak !== 'object') {
+                merged.dailyStreak = { count: 0, lastPlayedDate: null, bestStreak: 0 };
+            }
             merged.autoCloudSync = true;
             return merged;
         } catch (_) {
@@ -1563,40 +1863,117 @@ class SudokuApp {
         } catch (_) {}
     }
 
+    /**
+     * Met à jour la série de jours consécutifs (Daily Streak 🔥) lors d'une victoire
+     */
+    updateDailyStreakOnWin() {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const ds = this.profile.dailyStreak || { count: 0, lastPlayedDate: null, bestStreak: 0 };
+
+        if (ds.lastPlayedDate === todayStr) {
+            return;
+        }
+
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+        if (ds.lastPlayedDate === yesterdayStr) {
+            ds.count = (ds.count || 0) + 1;
+        } else {
+            ds.count = 1;
+        }
+        ds.lastPlayedDate = todayStr;
+        if (ds.count > (ds.bestStreak || 0)) {
+            ds.bestStreak = ds.count;
+        }
+        this.profile.dailyStreak = ds;
+    }
+
+    /**
+     * Vérifie et débloque les nouveaux trophées gagnés à l'issue d'une victoire
+     */
+    evaluateTrophiesOnWin() {
+        const unlocked = new Set(Array.isArray(this.profile.trophies) ? this.profile.trophies : []);
+        const newlyUnlocked = [];
+
+        let totalWon = 0;
+        let allDiffsWon = true;
+        Object.keys(SudokuEngine.DIFFICULTIES).forEach(k => {
+            const w = (this.stats[k] && this.stats[k].won) || 0;
+            totalWon += w;
+            if (w < 1) allDiffsWon = false;
+        });
+
+        const streakDays = (this.profile.dailyStreak && this.profile.dailyStreak.count) || 0;
+        const hardOrMore = ['hard', 'expert', 'master', 'extreme'].includes(this.difficulty);
+
+        const checks = {
+            first_win:    totalWon >= 1,
+            flawless_win: this.mistakes === 0,
+            speed_demon:  this.elapsedSeconds <= 180,
+            no_assist:    hardOrMore && !this.usedHintInGame && !this.usedAutoNotesInGame,
+            combo_15:     (this.maxStreakInGame || 0) >= 15 || (this.streak || 0) >= 15,
+            streak_3:     streakDays >= 3,
+            streak_7:     streakDays >= 7,
+            wins_10:      totalWon >= 10,
+            score_10k:    this.score >= 10000,
+            all_diffs:    allDiffsWon,
+            extreme_win:  this.difficulty === 'extreme',
+            wins_50:      totalWon >= 50
+        };
+
+        SudokuApp.TROPHIES.forEach(t => {
+            if (!unlocked.has(t.id) && checks[t.id]) {
+                unlocked.add(t.id);
+                newlyUnlocked.push(t);
+            }
+        });
+
+        this.profile.trophies = [...unlocked];
+        return newlyUnlocked;
+    }
+
     getProfileRankInfo() {
         const diffs = Object.keys(this.stats || {});
         let totalWon = 0;
         let totalBestScore = 0;
+        let minRetroXp = 0;
+        const baseXpByDiff = { easy: 50, medium: 90, hard: 140, expert: 200, master: 280, extreme: 400 };
+
         diffs.forEach(k => {
             const s = this.stats[k];
             if (s) {
-                totalWon += s.won || 0;
+                const w = s.won || 0;
+                totalWon += w;
                 totalBestScore += s.bestScore || 0;
+                minRetroXp += w * (baseXpByDiff[k] || 50);
             }
         });
 
-        const ranks = [
-            { level: 1, minWins: 0,  nextWins: 2,  title: 'Apprenti Logique' },
-            { level: 2, minWins: 2,  nextWins: 6,  title: 'Initié Sudoku' },
-            { level: 3, minWins: 6,  nextWins: 15, title: 'Tacticien' },
-            { level: 4, minWins: 15, nextWins: 30, title: 'Expert Confirmé' },
-            { level: 5, minWins: 30, nextWins: 60, title: 'Maître des Chiffres' },
-            { level: 6, minWins: 60, nextWins: 100, title: 'Grand Maître Absolu' }
-        ];
-
-        let current = ranks[0];
-        for (const r of ranks) {
-            if (totalWon >= r.minWins) current = r;
+        const xp = Math.max(Number(this.profile && this.profile.xp) || 0, minRetroXp);
+        if (this.profile && xp > (Number(this.profile.xp) || 0)) {
+            this.profile.xp = xp;
         }
 
-        const span = Math.max(1, current.nextWins - current.minWins);
+        const ranks = SudokuApp.RANKS;
+        let current = ranks[0];
+        for (const r of ranks) {
+            if (xp >= r.minXp) current = r;
+        }
+
+        const span = Math.max(1, current.nextXp - current.minXp);
         const pct = current.level === 6
             ? 100
-            : Math.min(100, Math.max(12, Math.round(((totalWon - current.minWins) / span) * 100)));
+            : Math.min(100, Math.max(10, Math.round(((xp - current.minXp) / span) * 100)));
 
         return {
             level: current.level,
             title: current.title,
+            reward: current.reward,
+            xp,
+            nextXp: current.nextXp,
             totalWon,
             totalBestScore,
             progressPct: pct
@@ -1612,28 +1989,57 @@ class SudokuApp {
 
     renderProfileModal() {
         this.syncProfileUI();
+        this.syncUnlockablesUI();
         const rank = this.getProfileRankInfo();
 
         const previewAvatar = document.getElementById('profile-avatar-preview');
         const levelBadge = document.getElementById('profile-level-badge');
         const rankTitle = document.getElementById('profile-rank-title');
+        const streakPill = document.getElementById('profile-streak-pill');
         const xpFill = document.getElementById('profile-xp-fill');
         const xpSub = document.getElementById('profile-xp-sub');
         const nameInput = document.getElementById('profile-name-input');
         const pinInput = document.getElementById('profile-pin-input');
 
+        const streakCount = (this.profile.dailyStreak && this.profile.dailyStreak.count) || 0;
+
         if (previewAvatar) previewAvatar.textContent = this.profile.avatar;
         if (levelBadge) levelBadge.textContent = `Niv. ${rank.level}`;
         if (rankTitle) rankTitle.textContent = rank.title;
+        if (streakPill) streakPill.textContent = `🔥 ${streakCount} j`;
         if (xpFill) xpFill.style.width = `${rank.progressPct}%`;
         if (xpSub) {
-            xpSub.textContent = `${rank.totalWon} victoire${rank.totalWon > 1 ? 's' : ''} • ${rank.totalBestScore.toLocaleString('fr-FR')} pts records`;
+            const nextTxt = rank.level < 6 ? ` / ${rank.nextXp} XP` : ' (Niveau Max)';
+            xpSub.textContent = `${rank.xp.toLocaleString('fr-FR')}${nextTxt} • ${rank.totalWon} victoire${rank.totalWon > 1 ? 's' : ''}`;
         }
         if (nameInput && document.activeElement !== nameInput) {
             nameInput.value = this.profile.name || 'hicham';
         }
         if (pinInput && document.activeElement !== pinInput) {
             pinInput.value = this.profile.pin || '1234';
+        }
+
+        // Rendu de la Galerie de Trophées
+        const trophiesGrid = document.getElementById('profile-trophies-grid');
+        const trophiesTitle = document.getElementById('trophies-section-title');
+        const unlockedSet = new Set(Array.isArray(this.profile.trophies) ? this.profile.trophies : []);
+        if (trophiesTitle) {
+            trophiesTitle.textContent = `🏆 Trophées & Récompenses (${unlockedSet.size}/${SudokuApp.TROPHIES.length})`;
+        }
+        if (trophiesGrid) {
+            trophiesGrid.innerHTML = SudokuApp.TROPHIES.map(t => {
+                const isUnlocked = unlockedSet.has(t.id);
+                return `
+                    <div class="trophy-card ${isUnlocked ? 'unlocked' : 'locked'}">
+                        <span class="trophy-emoji">${isUnlocked ? t.icon : '🔒'}</span>
+                        <div class="trophy-info">
+                            <strong>${t.title}</strong>
+                            <small>${t.desc}</small>
+                            <span class="trophy-xp-tag">${isUnlocked ? '✓ Débloqué' : `+${t.xp} XP`}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         document.querySelectorAll('.avatar-choice').forEach(btn => {
@@ -1710,6 +2116,14 @@ class SudokuApp {
 
         document.querySelectorAll('.avatar-choice').forEach(btn => {
             btn.addEventListener('click', () => {
+                const req = parseInt(btn.dataset.reqLevel || '1', 10);
+                const rank = this.getProfileRankInfo();
+                if (req > rank.level) {
+                    this.audio.playBlocked();
+                    this.haptic([20, 30, 20]);
+                    this.enqueueRewardToast('🔒', `Avatar ${btn.dataset.avatar} verrouillé`, `Atteignez le Niveau ${req} pour débloquer cet avatar !`, false);
+                    return;
+                }
                 this.profile.avatar = btn.dataset.avatar;
                 this.saveProfile();
                 this.audio.playClick();
@@ -1932,11 +2346,29 @@ class SudokuApp {
             this.stateRev = Math.max(this.stateRev, Number(remoteRev || Date.now()));
             this.profile.lastCloudSync = bundle.updatedAt || new Date().toISOString();
 
-            if (bundle.profile && bundle.profile.avatar) {
-                this.profile.avatar = bundle.profile.avatar;
+            if (bundle.profile) {
+                if (bundle.profile.avatar) this.profile.avatar = bundle.profile.avatar;
+                if (typeof bundle.profile.xp === 'number') {
+                    this.profile.xp = Math.max(this.profile.xp || 0, bundle.profile.xp);
+                }
+                if (Array.isArray(bundle.profile.trophies)) {
+                    this.profile.trophies = [...new Set([...(this.profile.trophies || []), ...bundle.profile.trophies])];
+                }
+                if (bundle.profile.dailyStreak && typeof bundle.profile.dailyStreak === 'object') {
+                    const localDs = this.profile.dailyStreak || { count: 0, lastPlayedDate: null, bestStreak: 0 };
+                    const remDs = bundle.profile.dailyStreak;
+                    if (!localDs.lastPlayedDate || (remDs.lastPlayedDate && remDs.lastPlayedDate >= localDs.lastPlayedDate)) {
+                        this.profile.dailyStreak = {
+                            count: Math.max(localDs.count || 0, remDs.count || 0),
+                            lastPlayedDate: remDs.lastPlayedDate || localDs.lastPlayedDate,
+                            bestStreak: Math.max(localDs.bestStreak || 0, remDs.bestStreak || 0)
+                        };
+                    }
+                }
             }
             this.saveProfile();
             this.syncProfileUI();
+            this.syncUnlockablesUI();
 
             if (bundle.stats && typeof bundle.stats === 'object') {
                 this.stats = { ...this.loadStats(), ...bundle.stats };
@@ -1973,7 +2405,21 @@ class SudokuApp {
                 this.streak = g.streak || 0;
                 this.hintsRemaining = g.hintsRemaining ?? 3;
                 this.isAutoNotesOn = !!g.isAutoNotesOn;
-                this.elapsedSeconds = Math.max(this.elapsedSeconds || 0, g.elapsedSeconds || 0);
+                this.elapsedSeconds = samePuzzle
+                    ? Math.max(this.elapsedSeconds || 0, g.elapsedSeconds || 0)
+                    : (g.elapsedSeconds || 0);
+                this.completedUnits = new Set(Array.isArray(g.completedUnits) ? g.completedUnits : []);
+                this.rebuildScoredCellsFromBoard(g.scoredCells);
+
+                if (!samePuzzle || this.isGameOver || this.isWon) {
+                    this.isGameOver = false;
+                    this.isWon = false;
+                    this.isPaused = false;
+                    this.syncPauseUI();
+                    this.closeModal('modal-game-over');
+                    this.closeModal('modal-victory');
+                    this.startTimer();
+                }
 
                 if (changedCell) {
                     this.selectedCell = { row: changedCell.row, col: changedCell.col };
@@ -1991,8 +2437,12 @@ class SudokuApp {
                 if (changedCell && this.cellElements && this.cellElements[changedCell.row]) {
                     const cellEl = this.cellElements[changedCell.row][changedCell.col];
                     if (changedCell.val !== 0) {
+                        const isRemoteCorrect = changedCell.val === this.solution[changedCell.row][changedCell.col];
                         this.animateCell(changedCell.row, changedCell.col, 'pop');
-                        SudokuFX.ripple(cellEl, changedCell.val === this.solution[changedCell.row][changedCell.col]);
+                        SudokuFX.ripple(cellEl, {
+                            color: isRemoteCorrect ? '#3b82f6' : '#ef4444',
+                            maxRadius: 46
+                        });
                         this.audio.playPlace(changedCell.val, this.streak || 1);
                     } else {
                         this.audio.playErase();
@@ -2021,7 +2471,10 @@ class SudokuApp {
             updatedAt: new Date().toISOString(),
             profile: {
                 name: this.profile.name,
-                avatar: this.profile.avatar
+                avatar: this.profile.avatar,
+                xp: this.profile.xp || 0,
+                trophies: this.profile.trophies || [],
+                dailyStreak: this.profile.dailyStreak || { count: 0, lastPlayedDate: null, bestStreak: 0 }
             },
             stats: this.stats,
             settings: this.settings,

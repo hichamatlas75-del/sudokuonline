@@ -13,11 +13,18 @@ class SudokuAudio {
         this.master = null;
         this.enabled = true;
         this.volume = 0.6;
+        this.soundPack = 'marimba'; // 'marimba' | 'piano' | 'crystal' | 'retro'
         this._noiseBuffer = null;
     }
 
     setEnabled(value) {
         this.enabled = !!value;
+    }
+
+    setSoundPack(pack) {
+        if (['marimba', 'piano', 'crystal', 'retro'].includes(pack)) {
+            this.soundPack = pack;
+        }
     }
 
     setVolume(value) {
@@ -112,10 +119,26 @@ class SudokuAudio {
     }
 
     /**
-     * Frappe de Marimba en bois chaud (fondamentale ronde + harmonique 4e rapide + transitoire boisé)
+     * Frappe principale selon le pack sonore actif (Marimba, Piano Lo-Fi, Cristal Zen, ou Rétro 8-bit)
      */
     _marimba(freq, { delay = 0, dur = 0.28, gain = 0.22 } = {}) {
-        // Fondamentale boisée
+        if (this.soundPack === 'piano') {
+            this._tone({ freq, type: 'triangle', delay, dur: dur * 1.45, gain: gain * 0.9, attack: 0.008, cutoff: freq * 2.6 });
+            this._tone({ freq: freq * 2, type: 'sine', delay, dur: dur * 0.85, gain: gain * 0.25, attack: 0.005 });
+            return;
+        }
+        if (this.soundPack === 'crystal') {
+            this._tone({ freq: freq * 1.5, type: 'sine', delay, dur: dur * 1.6, gain: gain * 0.72, attack: 0.004 });
+            this._tone({ freq: freq * 3, type: 'sine', delay: delay + 0.012, dur: dur * 1.1, gain: gain * 0.26, attack: 0.003, detune: 6 });
+            return;
+        }
+        if (this.soundPack === 'retro') {
+            this._tone({ freq, type: 'square', delay, dur: dur * 0.68, gain: gain * 0.42, attack: 0.002, cutoff: 2400 });
+            this._tone({ freq: freq * 2, type: 'triangle', delay: delay + 0.025, dur: dur * 0.45, gain: gain * 0.28, attack: 0.002 });
+            return;
+        }
+
+        // Pack par défaut : Fondamentale boisée Marimba
         this._tone({
             freq,
             type: 'sine',
@@ -375,6 +398,15 @@ class SudokuAudio {
         const finalChord = [261.63, 523.25, 659.25, 783.99, 987.77, 1567.98];
         finalChord.forEach((f, i) => {
             this._kalimba(f, { delay: 0.56 + i * 0.02, dur: 1.25, gain: 0.11 });
+        });
+    }
+
+    /** Déblocage d'un trophée ou passage de niveau : jingle cristallin doré. */
+    playAchievement() {
+        if (!this._ready()) return;
+        const notes = [587.33, 783.99, 987.77, 1174.66, 1567.98]; // D5 G5 B5 D6 G6
+        notes.forEach((f, i) => {
+            this._kalimba(f, { delay: i * 0.065, dur: 0.48, gain: 0.14 });
         });
     }
 }

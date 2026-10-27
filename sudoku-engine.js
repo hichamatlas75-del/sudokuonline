@@ -250,6 +250,8 @@ class SudokuEngine {
         // 3. Chercher un "Singleton caché" (Hidden Single) dans un bloc 3x3, une ligne ou une colonne
         for (const [r, c] of cellsOrder) {
             const targetVal = solution[r][c];
+            if (!this.isValidPlacement(board, r, c, targetVal)) continue;
+
             // Vérifier le bloc 3x3
             const boxStartR = Math.floor(r / 3) * 3;
             const boxStartC = Math.floor(c / 3) * 3;

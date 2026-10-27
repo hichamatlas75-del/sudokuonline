@@ -158,8 +158,8 @@ export async function onRequestPost(context) {
     const pinHash = await hashPin(pseudoSlug, pin);
 
     try {
-        // On n'autorise la lecture KV de secours que lors du 1er appel d'initialisation (`coldStart` ou `load`)
-        const allowKvFallback = Boolean(body.coldStart) || action === 'load';
+        // Lecture KV de secours autorisée uniquement si RAM + Edge Cache sont vides (coldStart, load ou 1er save)
+        const allowKvFallback = Boolean(body.coldStart) || action === 'load' || action === 'save';
         const existing = await getPlayerRecord(kvKey, env, allowKvFallback);
 
         // Vérification du code PIN si le profil existe déjà
