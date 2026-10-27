@@ -1,15 +1,21 @@
 /**
  * Cloudflare Pages Function — /api/sync
- * Sauvegarde et synchronisation du profil et de la partie Sudoku via Cloudflare Workers KV.
+ * Synchronisation temps réel (Mobile <-> PC) par Pseudo + Code PIN via Cloudflare Workers KV.
  *
- * Liaison KV requise dans Cloudflare Pages :
- *   Settings -> Functions -> KV namespace bindings -> Variable name : SUDOKU_KV
+ * Liaison KV dans Cloudflare Pages :
+ *   Settings -> Bindings -> KV namespace -> Variable name : SUDOKU_KV
  */
 
 const CORS_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store'
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
 };
+
+// Cache mémoire d'instance Worker pour une latence < 20ms entre appareils sur le même PoP
+const memoryStore = globalThis.__SUDOKU_LIVE_STORE || (globalThis.__SUDOKU_LIVE_STORE = new Map());
 
 function jsonResponse(data, status = 200) {
     return new Response(JSON.stringify(data), {
@@ -40,6 +46,10 @@ async function hashPin(pseudoSlug, pin) {
         .join('');
 }
 
+export async function onRequestOptions() {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function onRequestPost(context) {
     const { request, env } = context;
 
@@ -58,9 +68,9 @@ export async function onRequestPost(context) {
         return jsonResponse({ ok: false, error: 'Corps JSON invalide.' }, 400);
     }
 
-    const action = body.action || 'save'; // 'save' | 'load'
-    const pseudoSlug = normalizePseudo(body.pseudo);
-    const pin = String(body.pin || '').trim();
+    const action = body.action || 'save'; // 'save' | 'load' | 'poll'
+    const pseudoSlug = normalizePseudo(body.pseudo || 'hicham');
+    const pin = String(body.pin || '1234').trim();
 
     if (!pseudoSlug || pseudoSlug.length < 2) {
         return jsonResponse({
@@ -80,16 +90,61 @@ export async function onRequestPost(context) {
     const pinHash = await hashPin(pseudoSlug, pin);
 
     try {
-        const existingRaw = await env.SUDOKU_KV.get(kvKey);
-        const existing = existingRaw ? JSON.parse(existingRaw) : null;
+        // Lecture combinée : mémoire Worker + Cloudflare KV (on garde la révision la plus récente)
+        const memRecord = memoryStore.get(kvKey) || null;
+        const kvRaw = await env.SUDOKU_KV.get(kvKey);
+        const kvRecord = kvRaw ? JSON.parse(kvRaw) : null;
 
-        // Si le profil existe déjà, vérifier que le code PIN correspond
+        let existing = null;
+        if (memRecord && kvRecord) {
+            existing = (memRecord.rev || 0) >= (kvRecord.rev || 0) ? memRecord : kvRecord;
+        } else {
+            existing = memRecord || kvRecord;
+        }
+
+        if (existing) {
+            memoryStore.set(kvKey, existing);
+        }
+
+        // Vérification du code PIN si le profil existe déjà
         if (existing && existing.pinHash && existing.pinHash !== pinHash) {
             return jsonResponse({
                 ok: false,
                 code: 'WRONG_PIN',
                 error: 'Code PIN incorrect pour ce pseudo.'
             }, 403);
+        }
+
+        // Action 'poll' : ultra-légère pour le temps réel Mobile <-> PC
+        if (action === 'poll') {
+            if (!existing || !existing.bundle) {
+                return jsonResponse({
+                    ok: true,
+                    changed: false,
+                    empty: true,
+                    rev: 0
+                });
+            }
+            const sinceRev = Number(body.sinceRev) || 0;
+            const remoteRev = Number(existing.rev) || 0;
+            const sameDevice = body.deviceId && existing.deviceId === body.deviceId;
+
+            if (remoteRev > sinceRev && !sameDevice) {
+                return jsonResponse({
+                    ok: true,
+                    changed: true,
+                    rev: remoteRev,
+                    deviceId: existing.deviceId || '',
+                    updatedAt: existing.updatedAt,
+                    bundle: existing.bundle
+                });
+            }
+
+            return jsonResponse({
+                ok: true,
+                changed: false,
+                rev: remoteRev
+            });
         }
 
         if (action === 'load') {
@@ -102,28 +157,38 @@ export async function onRequestPost(context) {
             }
             return jsonResponse({
                 ok: true,
+                rev: existing.rev || Date.now(),
                 updatedAt: existing.updatedAt,
                 bundle: existing.bundle
             });
         }
 
-        // Action 'save'
+        // Action 'save' : enregistrement instantané d'un coup joué
         if (!body.bundle || typeof body.bundle !== 'object') {
             return jsonResponse({ ok: false, error: 'Données de sauvegarde manquantes.' }, 400);
         }
 
-        const updatedAt = new Date().toISOString();
+        const now = Date.now();
+        const prevRev = existing && existing.rev ? Number(existing.rev) : 0;
+        const incomingRev = Number(body.rev) || now;
+        const rev = Math.max(now, prevRev + 1, incomingRev);
+        const updatedAt = new Date(rev).toISOString();
+
         const record = {
             pseudoSlug,
             pinHash,
+            rev,
+            deviceId: body.deviceId || '',
             updatedAt,
             bundle: body.bundle
         };
 
+        memoryStore.set(kvKey, record);
         await env.SUDOKU_KV.put(kvKey, JSON.stringify(record));
 
         return jsonResponse({
             ok: true,
+            rev,
             updatedAt
         });
     } catch (err) {

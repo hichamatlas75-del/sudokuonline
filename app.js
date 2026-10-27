@@ -52,6 +52,10 @@ class SudokuApp {
         this.completedUnits = new Set();
 
         this.timerInterval = null;
+        this.deviceId = Math.random().toString(36).slice(2, 10);
+        this.stateRev = 0;
+        this.liveSyncReady = false;
+        this.isApplyingRemote = false;
 
         this.initDOMReferences();
         this.audio = new SudokuAudio();
@@ -69,6 +73,7 @@ class SudokuApp {
         }
 
         this.syncProfileUI();
+        this.initLiveSync();
     }
 
     initDOMReferences() {
@@ -1231,7 +1236,7 @@ class SudokuApp {
                 this.elapsedSeconds += 1;
                 this.timerDisplay.textContent = this.formatTime(this.elapsedSeconds);
                 if (this.elapsedSeconds % 5 === 0) {
-                    this.saveGameState();
+                    this.saveGameState(false);
                 }
             }
         }, 1000);
@@ -1309,7 +1314,7 @@ class SudokuApp {
     /**
      * Persistance localStorage (Partie en cours, Paramètres, Statistiques)
      */
-    saveGameState() {
+    saveGameState(pushRemote = true) {
         if (this.isWon || this.isGameOver) return;
         const payload = {
             difficulty: this.difficulty,
@@ -1332,7 +1337,10 @@ class SudokuApp {
         try {
             localStorage.setItem(SudokuApp.STORAGE_KEY_GAME, JSON.stringify(payload));
         } catch (_) {}
-        this.scheduleAutoCloudSync();
+        if (pushRemote && this.liveSyncReady && !this.isApplyingRemote) {
+            this.stateRev = Date.now();
+            this.pushLiveSyncNow();
+        }
     }
 
     restoreSavedGame() {
@@ -1463,15 +1471,19 @@ class SudokuApp {
 
     loadProfile() {
         const defaults = {
-            name: 'Joueur',
-            pin: '',
+            name: 'hicham',
+            pin: '1234',
             avatar: '🧠',
-            autoCloudSync: false,
+            autoCloudSync: true,
             lastCloudSync: null
         };
         try {
-            const saved = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_PROFILE));
-            return { ...defaults, ...saved };
+            const saved = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_PROFILE)) || {};
+            const merged = { ...defaults, ...saved };
+            if (!merged.name || merged.name === 'Joueur') merged.name = 'hicham';
+            if (!/^[0-9]{4}$/.test(merged.pin || '')) merged.pin = '1234';
+            merged.autoCloudSync = true;
+            return merged;
         } catch (_) {
             return defaults;
         }
@@ -1527,7 +1539,7 @@ class SudokuApp {
         const navAvatar = document.getElementById('nav-profile-avatar');
         const navName = document.getElementById('nav-profile-name');
         if (navAvatar) navAvatar.textContent = this.profile.avatar || '🧠';
-        if (navName) navName.textContent = this.profile.name || 'Profil';
+        if (navName) navName.textContent = this.profile.name || 'hicham';
     }
 
     renderProfileModal() {
@@ -1550,10 +1562,10 @@ class SudokuApp {
             xpSub.textContent = `${rank.totalWon} victoire${rank.totalWon > 1 ? 's' : ''} • ${rank.totalBestScore.toLocaleString('fr-FR')} pts records`;
         }
         if (nameInput && document.activeElement !== nameInput) {
-            nameInput.value = this.profile.name === 'Joueur' ? '' : this.profile.name;
+            nameInput.value = this.profile.name || 'hicham';
         }
         if (pinInput && document.activeElement !== pinInput) {
-            pinInput.value = this.profile.pin || '';
+            pinInput.value = this.profile.pin || '1234';
         }
 
         document.querySelectorAll('.avatar-choice').forEach(btn => {
@@ -1580,16 +1592,16 @@ class SudokuApp {
             gameProgress.textContent = `Grille remplie à ${pctGrid}% (${filled}/81 cases)`;
         }
         if (syncBadge) {
-            syncBadge.textContent = this.profile.autoCloudSync ? '☁️ Cloud Auto' : '✓ Local';
+            syncBadge.textContent = '🟢 Temps Réel';
         }
 
         const lastSyncEl = document.getElementById('cloud-last-sync');
         if (lastSyncEl) {
             if (this.profile.lastCloudSync) {
                 const d = new Date(this.profile.lastCloudSync);
-                lastSyncEl.textContent = `Dernière synchro Cloudflare KV : ${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+                lastSyncEl.textContent = `Synchro active (${this.profile.name}) • Dernier échange à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
             } else {
-                lastSyncEl.textContent = '';
+                lastSyncEl.textContent = `Canal temps réel actif : « ${this.profile.name} »`;
             }
         }
     }
@@ -1598,22 +1610,35 @@ class SudokuApp {
         const nameInput = document.getElementById('profile-name-input');
         const pinInput = document.getElementById('profile-pin-input');
 
-        if (nameInput) {
-            nameInput.addEventListener('input', () => {
-                const val = nameInput.value.trim();
-                this.profile.name = val || 'Joueur';
-                this.saveProfile();
-                this.syncProfileUI();
-            });
-        }
+        const onCredentialsEdited = () => {
+            const valName = nameInput ? nameInput.value.trim() : this.profile.name;
+            const valPin = pinInput ? pinInput.value.replace(/[^0-9]/g, '').slice(0, 4) : this.profile.pin;
+            if (pinInput && pinInput.value !== valPin) pinInput.value = valPin;
 
-        if (pinInput) {
-            pinInput.addEventListener('input', () => {
-                pinInput.value = pinInput.value.replace(/[^0-9]/g, '').slice(0, 4);
-                this.profile.pin = pinInput.value;
-                this.saveProfile();
-            });
-        }
+            if (valName && valName.length >= 2) {
+                this.profile.name = valName;
+            }
+            if (/^[0-9]{4}$/.test(valPin)) {
+                this.profile.pin = valPin;
+            }
+            this.saveProfile();
+            this.syncProfileUI();
+
+            if (this.profile.name.length >= 2 && /^[0-9]{4}$/.test(this.profile.pin)) {
+                if (this._credDebounce) clearTimeout(this._credDebounce);
+                this._credDebounce = setTimeout(async () => {
+                    this.stateRev = 0;
+                    const loaded = await this.pollLiveSync(true);
+                    if (!loaded) {
+                        this.pushLiveSyncNow();
+                    }
+                    this.showCloudStatus(`🟢 Connecté en direct au canal « ${this.profile.name} » !`, 'ok');
+                }, 400);
+            }
+        };
+
+        if (nameInput) nameInput.addEventListener('input', onCredentialsEdited);
+        if (pinInput) pinInput.addEventListener('input', onCredentialsEdited);
 
         document.querySelectorAll('.avatar-choice').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1621,19 +1646,10 @@ class SudokuApp {
                 this.saveProfile();
                 this.audio.playClick();
                 this.renderProfileModal();
-                this.scheduleAutoCloudSync();
+                this.stateRev = Date.now();
+                this.pushLiveSyncNow();
             });
         });
-
-        const btnPush = document.getElementById('btn-cloud-push');
-        if (btnPush) {
-            btnPush.addEventListener('click', () => this.pushToCloud(false));
-        }
-
-        const btnPull = document.getElementById('btn-cloud-pull');
-        if (btnPull) {
-            btnPull.addEventListener('click', () => this.pullFromCloud());
-        }
 
         const btnExport = document.getElementById('btn-export-json');
         if (btnExport) {
@@ -1649,6 +1665,234 @@ class SudokuApp {
                 if (file) this.importBackupJSON(file);
                 fileInput.value = '';
             });
+        }
+    }
+
+    /**
+     * Synchronisation Temps Réel (Mobile <-> PC) sans clic manuel
+     */
+    async initLiveSync() {
+        // Canal instantané inter-onglets (même navigateur)
+        try {
+            if ('BroadcastChannel' in window) {
+                this.liveChannel = new BroadcastChannel('sudoku_live_sync_v1');
+                this.liveChannel.onmessage = (ev) => {
+                    const msg = ev.data;
+                    if (msg && msg.deviceId !== this.deviceId && msg.bundle && msg.rev > this.stateRev) {
+                        this.applyRemoteLiveState(msg.bundle, msg.rev);
+                    }
+                };
+            }
+        } catch (_) {}
+
+        // 1. Premier check au démarrage : récupérer la grille distante si elle existe déjà
+        const foundRemote = await this.pollLiveSync(true);
+        this.liveSyncReady = true;
+        if (!foundRemote) {
+            // Aucune grille sur le serveur pour ce Pseudo+PIN -> on publie la grille locale
+            this.stateRev = Date.now();
+            this.pushLiveSyncNow();
+        }
+
+        // 2. Boucle temps réel rapide (toutes les 850 ms quand l'écran est visible)
+        this._livePollInterval = setInterval(() => {
+            if (!document.hidden && !this.isApplyingRemote) {
+                this.pollLiveSync(false);
+            }
+        }, 850);
+
+        // Réveil immédiat dès qu'on revient sur l'onglet ou déverrouille le téléphone
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) this.pollLiveSync(false);
+        });
+        window.addEventListener('focus', () => {
+            this.pollLiveSync(false);
+        });
+    }
+
+    hasValidLiveCredentials() {
+        const pseudo = (this.profile && this.profile.name) ? this.profile.name.trim() : '';
+        const pin = (this.profile && this.profile.pin) ? this.profile.pin.trim() : '';
+        return pseudo.length >= 2 && /^[0-9]{4}$/.test(pin);
+    }
+
+    pulseLiveDot(mode = 'ok') {
+        const dot = document.getElementById('live-sync-dot');
+        if (!dot) return;
+        dot.classList.add('connected');
+        if (mode === 'tx' || mode === 'rx') {
+            dot.classList.remove('sync-flash');
+            void dot.offsetWidth;
+            dot.classList.add('sync-flash');
+        }
+    }
+
+    async pushLiveSyncNow() {
+        if (!this.hasValidLiveCredentials() || this.isApplyingRemote) return;
+        const pseudo = this.profile.name.trim();
+        const pin = this.profile.pin.trim();
+        const rev = this.stateRev || Date.now();
+        this.stateRev = rev;
+
+        const bundle = this.buildFullBackupBundle();
+
+        // Diffusion locale immédiate
+        if (this.liveChannel) {
+            try {
+                this.liveChannel.postMessage({ deviceId: this.deviceId, rev, bundle });
+            } catch (_) {}
+        }
+
+        this.pulseLiveDot('tx');
+
+        try {
+            const res = await fetch(SudokuApp.CLOUD_KV_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'save',
+                    pseudo,
+                    pin,
+                    rev,
+                    deviceId: this.deviceId,
+                    bundle
+                }),
+                keepalive: true
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+                if (data.rev && data.rev > this.stateRev) {
+                    this.stateRev = data.rev;
+                }
+                this.profile.lastCloudSync = data.updatedAt || new Date().toISOString();
+                this.saveProfile();
+                this.pulseLiveDot('ok');
+            }
+        } catch (_) {}
+    }
+
+    async pollLiveSync(forceFull = false) {
+        if (!this.hasValidLiveCredentials() || this._isPollingLive) return false;
+        this._isPollingLive = true;
+
+        const pseudo = this.profile.name.trim();
+        const pin = this.profile.pin.trim();
+
+        try {
+            const res = await fetch(SudokuApp.CLOUD_KV_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'poll',
+                    pseudo,
+                    pin,
+                    sinceRev: forceFull ? 0 : (this.stateRev || 0)
+                }),
+                cache: 'no-store'
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.ok) return false;
+
+            this.pulseLiveDot('ok');
+
+            if (data.changed && data.bundle) {
+                if (!forceFull && data.deviceId && data.deviceId === this.deviceId) {
+                    this.stateRev = Math.max(this.stateRev, Number(data.rev || 0));
+                    return true;
+                }
+                this.applyRemoteLiveState(data.bundle, data.rev);
+                return true;
+            }
+            return !data.empty;
+        } catch (_) {
+            return false;
+        } finally {
+            this._isPollingLive = false;
+        }
+    }
+
+    applyRemoteLiveState(bundle, remoteRev = 0) {
+        if (!bundle || typeof bundle !== 'object') return;
+        this.isApplyingRemote = true;
+        try {
+            this.stateRev = Math.max(this.stateRev, Number(remoteRev || Date.now()));
+            this.profile.lastCloudSync = bundle.updatedAt || new Date().toISOString();
+
+            if (bundle.profile && bundle.profile.avatar) {
+                this.profile.avatar = bundle.profile.avatar;
+            }
+            this.saveProfile();
+            this.syncProfileUI();
+
+            if (bundle.stats && typeof bundle.stats === 'object') {
+                this.stats = { ...this.loadStats(), ...bundle.stats };
+                this.saveStats();
+            }
+
+            const g = bundle.currentGame;
+            if (g && Array.isArray(g.board) && Array.isArray(g.solution)) {
+                // Identifier la case qui vient d'être modifiée sur l'autre appareil pour l'animer en direct
+                let changedCell = null;
+                const samePuzzle = Array.isArray(this.solution) &&
+                    this.solution.length === 9 &&
+                    JSON.stringify(this.solution) === JSON.stringify(g.solution);
+
+                if (samePuzzle && Array.isArray(this.board) && this.board.length === 9) {
+                    for (let r = 0; r < 9; r++) {
+                        for (let c = 0; c < 9; c++) {
+                            if (this.board[r][c] !== g.board[r][c]) {
+                                changedCell = { row: r, col: c, val: g.board[r][c] };
+                            }
+                        }
+                    }
+                }
+
+                this.difficulty = g.difficulty || 'easy';
+                this.multiplier = g.multiplier || 1;
+                this.initialBoard = g.initialBoard;
+                this.board = g.board;
+                this.solution = g.solution;
+                this.notes = g.notes || Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => []));
+                this.history = g.history || [];
+                this.mistakes = g.mistakes || 0;
+                this.score = g.score || 0;
+                this.streak = g.streak || 0;
+                this.hintsRemaining = g.hintsRemaining ?? 3;
+                this.elapsedSeconds = Math.max(this.elapsedSeconds || 0, g.elapsedSeconds || 0);
+
+                if (changedCell) {
+                    this.selectedCell = { row: changedCell.row, col: changedCell.col };
+                } else if (g.selectedCell && typeof g.selectedCell.row === 'number') {
+                    this.selectedCell = g.selectedCell;
+                }
+
+                try {
+                    localStorage.setItem(SudokuApp.STORAGE_KEY_GAME, JSON.stringify(g));
+                } catch (_) {}
+
+                this.updateCompletedUnitsSnapshot(false);
+                this.render();
+
+                if (changedCell && this.cellElements && this.cellElements[changedCell.row]) {
+                    const cellEl = this.cellElements[changedCell.row][changedCell.col];
+                    if (changedCell.val !== 0) {
+                        this.animateCell(changedCell.row, changedCell.col, 'pop');
+                        SudokuFX.ripple(cellEl, changedCell.val === this.solution[changedCell.row][changedCell.col]);
+                        this.audio.playPlace(changedCell.val, this.streak || 1);
+                    } else {
+                        this.audio.playErase();
+                    }
+                }
+            }
+
+            this.pulseLiveDot('rx');
+            const profileModal = document.getElementById('modal-profile');
+            if (profileModal && !profileModal.classList.contains('hidden')) {
+                this.renderProfileModal();
+            }
+        } finally {
+            this.isApplyingRemote = false;
         }
     }
 
@@ -1675,36 +1919,9 @@ class SudokuApp {
         if (!bundle || typeof bundle !== 'object') {
             throw new Error('Format de sauvegarde invalide.');
         }
-
-        if (bundle.profile) {
-            this.profile.name = (bundle.profile.name || 'Joueur').slice(0, 18);
-            this.profile.avatar = bundle.profile.avatar || '🧠';
-            this.saveProfile();
-        }
-
-        if (bundle.stats && typeof bundle.stats === 'object') {
-            this.stats = { ...this.loadStats(), ...bundle.stats };
-            this.saveStats();
-        }
-
-        if (bundle.settings && typeof bundle.settings === 'object') {
-            this.settings = { ...this.loadSettings(), ...bundle.settings };
-            this.saveSettings();
-            this.applyFeedbackSettings();
-            this.applyTheme(this.settings.theme);
-            this.syncSettingsUI();
-        }
-
-        if (bundle.currentGame && bundle.currentGame.board && bundle.currentGame.solution) {
-            try {
-                localStorage.setItem(SudokuApp.STORAGE_KEY_GAME, JSON.stringify(bundle.currentGame));
-                this.restoreSavedGame();
-            } catch (_) {}
-        }
-
-        this.renderProfileModal();
-        this.render();
-        this.audio.playSecondChance();
+        this.applyRemoteLiveState(bundle, Date.now());
+        this.stateRev = Date.now();
+        this.pushLiveSyncNow();
     }
 
     showCloudStatus(text, type = 'ok') {
@@ -1713,138 +1930,6 @@ class SudokuApp {
         el.textContent = text;
         el.className = `cloud-status-msg ${type}`;
         el.classList.remove('hidden');
-    }
-
-    getCredentialsFromInputs() {
-        const nameInput = document.getElementById('profile-name-input');
-        const pinInput = document.getElementById('profile-pin-input');
-        const pseudo = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : this.profile.name;
-        const pin = (pinInput && pinInput.value.trim()) ? pinInput.value.trim() : (this.profile.pin || '');
-        return { pseudo, pin };
-    }
-
-    scheduleAutoCloudSync() {
-        if (!this.profile || !this.profile.autoCloudSync) return;
-        if (!this.profile.name || this.profile.name === 'Joueur' || !/^[0-9]{4}$/.test(this.profile.pin || '')) return;
-
-        if (this._autoSyncTimer) clearTimeout(this._autoSyncTimer);
-        this._autoSyncTimer = setTimeout(() => {
-            this.pushToCloud(true);
-        }, 3500);
-    }
-
-    async pushToCloud(silent = false) {
-        const { pseudo, pin } = this.getCredentialsFromInputs();
-
-        if (!pseudo || pseudo === 'Joueur' || pseudo.length < 2) {
-            if (!silent) {
-                this.audio.playBlocked();
-                this.showCloudStatus('Veuillez choisir un Pseudo (au moins 2 lettres) ci-dessus.', 'err');
-            }
-            return;
-        }
-        if (!/^[0-9]{4}$/.test(pin)) {
-            if (!silent) {
-                this.audio.playBlocked();
-                this.showCloudStatus('Veuillez entrer un code PIN à 4 chiffres (ex: 1234).', 'err');
-            }
-            return;
-        }
-
-        this.profile.name = pseudo;
-        this.profile.pin = pin;
-        this.saveProfile();
-        this.syncProfileUI();
-
-        const btnPush = document.getElementById('btn-cloud-push');
-        if (!silent) {
-            if (btnPush) btnPush.disabled = true;
-            this.showCloudStatus('Sauvegarde en cours sur Cloudflare KV...', 'info');
-        }
-
-        try {
-            const bundle = this.buildFullBackupBundle();
-            const res = await fetch(SudokuApp.CLOUD_KV_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'save',
-                    pseudo,
-                    pin,
-                    bundle
-                })
-            });
-
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.ok) {
-                throw new Error(data.error || `Erreur serveur (${res.status})`);
-            }
-
-            this.profile.autoCloudSync = true;
-            this.profile.lastCloudSync = data.updatedAt || new Date().toISOString();
-            this.saveProfile();
-            this.renderProfileModal();
-
-            if (!silent) {
-                this.audio.playHint();
-                this.showCloudStatus(`✓ Profil « ${pseudo} » sauvegardé sur Cloudflare KV ! La synchro automatique est activée.`, 'ok');
-            }
-        } catch (err) {
-            if (!silent) {
-                this.audio.playError();
-                this.showCloudStatus(err.message || 'Serveur Cloudflare KV non disponible.', 'err');
-            }
-        } finally {
-            if (!silent && btnPush) btnPush.disabled = false;
-        }
-    }
-
-    async pullFromCloud() {
-        const { pseudo, pin } = this.getCredentialsFromInputs();
-
-        if (!pseudo || pseudo === 'Joueur' || pseudo.length < 2) {
-            this.audio.playBlocked();
-            this.showCloudStatus('Entrez votre Pseudo ci-dessus pour récupérer votre profil.', 'err');
-            return;
-        }
-        if (!/^[0-9]{4}$/.test(pin)) {
-            this.audio.playBlocked();
-            this.showCloudStatus('Entrez votre code PIN à 4 chiffres.', 'err');
-            return;
-        }
-
-        const btnPull = document.getElementById('btn-cloud-pull');
-        if (btnPull) btnPull.disabled = true;
-        this.showCloudStatus('Recherche de votre profil sur Cloudflare KV...', 'info');
-
-        try {
-            const res = await fetch(SudokuApp.CLOUD_KV_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'load',
-                    pseudo,
-                    pin
-                })
-            });
-
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.ok || !data.bundle) {
-                throw new Error(data.error || 'Aucune sauvegarde trouvée pour ce couple Pseudo + PIN.');
-            }
-
-            this.profile.name = pseudo;
-            this.profile.pin = pin;
-            this.profile.autoCloudSync = true;
-            this.profile.lastCloudSync = data.updatedAt || new Date().toISOString();
-            this.applyFullBackupBundle(data.bundle);
-            this.showCloudStatus(`✓ Profil « ${this.profile.name} » et partie en cours récupérés avec succès !`, 'ok');
-        } catch (err) {
-            this.audio.playError();
-            this.showCloudStatus(err.message || 'Impossible de récupérer la sauvegarde.', 'err');
-        } finally {
-            if (btnPull) btnPull.disabled = false;
-        }
     }
 
     exportBackupJSON() {

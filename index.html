@@ -40,7 +40,8 @@
             </div>
 
             <div class="navbar-actions">
-                <button id="btn-profile" class="nav-icon-btn profile-nav-btn" title="Profil & Sauvegarde Cloud">
+                <button id="btn-profile" class="nav-icon-btn profile-nav-btn" title="Profil & Synchronisation Temps Réel">
+                    <span id="live-sync-dot" class="live-dot" aria-hidden="true"></span>
                     <span id="nav-profile-avatar" class="nav-avatar-emoji">🧠</span>
                     <span id="nav-profile-name" class="nav-btn-label">Profil</span>
                 </button>
@@ -449,22 +450,13 @@
                     </div>
                 </div>
 
-                <!-- Synchronisation Cloud Cloudflare KV par Pseudo + PIN -->
+                <!-- Synchronisation Temps Réel Cloudflare KV (Mobile <-> PC) -->
                 <div class="settings-section">
-                    <span class="settings-section-title">☁️ Sauvegarde en ligne (Cloudflare KV)</span>
+                    <span class="settings-section-title">🟢 Synchronisation Temps Réel (Mobile ↔ PC)</span>
                     <div class="settings-group-card cloud-sync-card">
                         <p class="cloud-sync-desc">
-                            Entrez votre <strong>Pseudo</strong> et votre <strong>code PIN à 4 chiffres</strong> ci-dessus : vos parties et statistiques sont liées à ce couple d'identifiants sur tous vos appareils, <strong>sans aucun code à copier-coller</strong>.
+                            <strong>Synchronisation instantanée active :</strong> dès que le même <strong>Pseudo</strong> et <strong>code PIN</strong> sont renseignés sur votre téléphone et votre PC, chaque chiffre posé sur l'un apparaît <strong>en direct</strong> sur l'autre sans rien cliquer.
                         </p>
-
-                        <div class="cloud-kv-actions">
-                            <button type="button" id="btn-cloud-push" class="primary-btn cloud-push-btn">
-                                ☁️ Sauvegarder en ligne (Pseudo + PIN)
-                            </button>
-                            <button type="button" id="btn-cloud-pull" class="secondary-btn cloud-push-btn">
-                                📥 Récupérer ma sauvegarde (Pseudo + PIN)
-                            </button>
-                        </div>
 
                         <small id="cloud-last-sync" class="cloud-sync-meta"></small>
                         <p id="cloud-status-msg" class="cloud-status-msg hidden" role="status"></p>
