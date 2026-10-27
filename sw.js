@@ -6,14 +6,19 @@
  * ⚠️ À CHAQUE DÉPLOIEMENT qui modifie un fichier du jeu : incrémenter VERSION.
  *    Le navigateur détecte alors un nouveau sw.js, télécharge la nouvelle version
  *    en arrière-plan et pwa.js propose « Mettre à jour » à l'utilisateur.
+ *
+ * v1.0.1 (correctif) : Cloudflare Pages redirige /index.html vers /. Une réponse
+ * « redirigée » ne peut pas être servie à une navigation par un service worker
+ * (Chrome affiche alors ERR_FAILED). On ne met donc en cache que « ./ » et on
+ * nettoie toute réponse redirigée avant de la stocker.
  */
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.0.1';
 const SHELL_CACHE = `sudoku-shell-${VERSION}`;
 const FONT_CACHE = 'sudoku-fonts-v1';
 
+// Ne PAS ajouter 'index.html' ici : '/' est la même page, sans redirection.
 const SHELL = [
     './',
-    'index.html',
     'styles.css',
     'sudoku-engine.js',
     'sound.js',
@@ -28,13 +33,28 @@ const SHELL = [
     'icons/favicon-32.png'
 ];
 
+/** Retire le drapeau « redirected » (interdit pour répondre à une navigation). */
+async function clean(res) {
+    if (!res.redirected) return res;
+    const body = await res.blob();
+    return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
+}
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(SHELL_CACHE).then((cache) =>
-            // cache: 'reload' contourne le cache HTTP pour ne pas figer d'anciennes copies
-            cache.addAll(SHELL.map((url) => new Request(url, { cache: 'reload' })))
-        )
-        // Pas de skipWaiting() automatique : on attend le choix de l'utilisateur (message SKIP_WAITING)
+            Promise.all(SHELL.map(async (url) => {
+                // cache: 'reload' contourne le cache HTTP pour ne pas figer d'anciennes copies
+                const res = await fetch(new Request(url, { cache: 'reload' }));
+                if (!res.ok) throw new Error(`Précache impossible : ${url} (${res.status})`);
+                await cache.put(url, await clean(res));
+            }))
+        ).then(() => {
+            // Correctif v1.0.1 : activation immédiate pour réparer les appareils dont
+            // l'ancienne version (v1.0.0) affichait ERR_FAILED. Pour revenir au mode
+            // « Mettre à jour » (prompt) lors des prochaines versions, supprimer cette ligne.
+            self.skipWaiting();
+        })
     );
 });
 
@@ -67,12 +87,13 @@ self.addEventListener('fetch', (event) => {
 
     if (url.origin !== self.location.origin) return;
 
-    // Navigation : toujours servir l'index du cache (cohérent avec les scripts du même cache)
+    // Navigation : page du cache (cohérente avec les scripts du même cache), sinon réseau
     if (req.mode === 'navigate') {
-        event.respondWith(
-            caches.match('index.html', { ignoreSearch: true })
-                .then((cached) => cached || fetch(req))
-        );
+        event.respondWith((async () => {
+            const cached = await caches.match('./', { ignoreSearch: true });
+            if (cached) return cached;
+            return fetch(req);
+        })());
         return;
     }
 

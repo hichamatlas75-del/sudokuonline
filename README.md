@@ -32,6 +32,8 @@ Application Web de Sudoku gratuite en ligne inspirée de **Sudoku.com**, dévelo
 - ⚠️ **À chaque déploiement modifiant un fichier, incrémentez `VERSION` dans `sw.js`** (sinon les visiteurs gardent l'ancienne version en cache).
 - Le fichier `_headers` (Cloudflare Pages / Netlify) empêche la mise en cache HTTP de `sw.js` et du manifeste.
 - Si vous ajoutez un fichier au jeu, ajoutez-le aussi à la liste `SHELL` de `sw.js`.
+- ⚠️ Ne mettez **pas** `index.html` dans `SHELL` : Cloudflare Pages redirige `/index.html` vers `/`, et un service worker ne peut pas répondre à une navigation avec une réponse redirigée (Chrome affiche `ERR_FAILED`). La page d'accueil est mise en cache sous `./`.
+- Dépannage d'un appareil bloqué : Chrome → icône (i) à gauche de l'adresse → *Paramètres du site* → *Effacer et réinitialiser*.
 
 ## Lancer en local
 Ouvrez simplement `index.html` dans votre navigateur (ou servez le dossier, ex. `npx serve`, pour tester la PWA sur `localhost`).
