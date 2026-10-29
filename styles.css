@@ -1,14 +1,72 @@
 /* ==========================================================================
-   Sudoku.com Clone - Feuille de style principale (Clair, Sépia, Sombre)
+   Sudoku.com Clone - Architecture CSS Moderne (Cascade Layers)
+   ==========================================================================
+   Sommaire :
+   1. @layer declaration   - Déclaration d'ordre de priorité des couches en cascade
+   2. @layer tokens        - Variables de design (rayons, espacements, transitions, ombres)
+   3. @layer themes        - 9 thèmes complets avec contrastes WCAG AA vérifiés
+   4. @layer reset         - Reset universel et styles de base du document
+   5. @layer components    - Layout, grille, pavé numérique, modales, profil, animations, responsive
+   6. @layer utilities     - Accessibilité (:focus-visible), standalone, utilitaires
    ========================================================================== */
 
+@layer reset, tokens, themes, components, utilities;
+
+@layer tokens {
+    :root {
+        /* Typographie */
+        --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+        /* Rayons de bordure (Border-Radius) */
+        --radius-xs: 4px;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 10px;
+        --radius-xl: 14px;
+        --radius-2xl: 20px;
+        --radius-full: 9999px;
+
+        /* Espacements (Spacing) */
+        --space-2xs: 2px;
+        --space-xs: 4px;
+        --space-sm: 8px;
+        --space-md: 12px;
+        --space-lg: 16px;
+        --space-xl: 20px;
+        --space-2xl: 32px;
+
+        /* Transitions & Durées */
+        --dur-fast: 0.12s;
+        --dur-normal: 0.18s;
+        --dur-slow: 0.3s;
+        --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+        --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        /* Ombres de surface (Depth & Elevation) */
+        --shadow-sm: 0 2px 6px rgba(52, 72, 97, 0.08);
+        --shadow-md: 0 8px 24px rgba(52, 72, 97, 0.12);
+        --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.22);
+
+        /* Hiérarchie Z-Index */
+        --z-base: 1;
+        --z-board-overlay: 10;
+        --z-dropdown: 50;
+        --z-sticky: 100;
+        --z-toast: 150;
+        --z-modal: 1000;
+        --z-toast-high: 2000;
+    }
+}
+
+@layer themes {
 :root,
 [data-theme="light"] {
+    color-scheme: light;
     --bg-page: #f8fafc;
     --bg-surface: #ffffff;
     --bg-navbar: #ffffff;
     --text-primary: #212b36;
-    --text-secondary: #6e7c8c;
+    --text-secondary: #526173;
     --accent-primary: #0072e3;
     --accent-hover: #005bb5;
     --accent-soft: #eaeef4;
@@ -26,19 +84,20 @@
 
     --digit-given: #344861;
     --digit-user: #0072e3;
-    --digit-error: #e53935;
-    --digit-note: #5a6b82;
+    --digit-error: #d32f2f;
+    --digit-note: #475569;
 
     --shadow-sm: 0 2px 6px rgba(52, 72, 97, 0.08);
     --shadow-md: 0 8px 24px rgba(52, 72, 97, 0.12);
 }
 
 [data-theme="sepia"] {
+    color-scheme: light;
     --bg-page: #f4ecd8;
     --bg-surface: #fbf6e9;
     --bg-navbar: #efe4ca;
     --text-primary: #3d3122;
-    --text-secondary: #7a6852;
+    --text-secondary: #635341;
     --accent-primary: #b85d19;
     --accent-hover: #964910;
     --accent-soft: #e6d8bc;
@@ -54,12 +113,13 @@
     --cell-hint-bg: #cdeac0;
 
     --digit-given: #3d3122;
-    --digit-user: #b85d19;
+    --digit-user: #a24f0f;
     --digit-error: #c92a2a;
-    --digit-note: #6e5a44;
+    --digit-note: #554431;
 }
 
 [data-theme="dark"] {
+    color-scheme: dark;
     --bg-page: #111827;
     --bg-surface: #1f2937;
     --bg-navbar: #1f2937;
@@ -87,6 +147,7 @@
 
 /* 🌑 Thème OLED Noir Pur (Économie batterie AMOLED & contraste absolu) */
 [data-theme="oled"] {
+    color-scheme: dark;
     --bg-page: #000000;
     --bg-surface: #0a0a0c;
     --bg-navbar: #050507;
@@ -109,11 +170,12 @@
     --digit-given: #f4f4f5;
     --digit-user: #38bdf8;
     --digit-error: #f87171;
-    --digit-note: #71717a;
+    --digit-note: #a1a1aa;
 }
 
 /* 🌿 Thème Forêt Zen / Matcha (Débloqué Niv. 2) */
 [data-theme="emerald"] {
+    color-scheme: light;
     --bg-page: #ecfdf5;
     --bg-surface: #f8fafc;
     --bg-navbar: #d1fae5;
@@ -134,13 +196,14 @@
     --cell-hint-bg: #fef08a;
 
     --digit-given: #064e3b;
-    --digit-user: #059669;
+    --digit-user: #047857;
     --digit-error: #e11d48;
     --digit-note: #047857;
 }
 
 /* 🌸 Thème Sakura Pastel (Débloqué Niv. 3) */
 [data-theme="sakura"] {
+    color-scheme: light;
     --bg-page: #fff1f2;
     --bg-surface: #ffffff;
     --bg-navbar: #ffe4e6;
@@ -168,6 +231,7 @@
 
 /* 🌊 Thème Océan Abysses (Débloqué Niv. 4) */
 [data-theme="ocean"] {
+    color-scheme: dark;
     --bg-page: #071324;
     --bg-surface: #0d2137;
     --bg-navbar: #0b1b2e;
@@ -195,6 +259,7 @@
 
 /* ⚡ Thème Cyberpunk Néon (Débloqué Niv. 5) */
 [data-theme="cyber"] {
+    color-scheme: dark;
     --bg-page: #0d0221;
     --bg-surface: #190736;
     --bg-navbar: #14052b;
@@ -222,6 +287,7 @@
 
 /* 👑 Thème Prestige Or & Onyx (Débloqué Niv. 6 Grand Maître) */
 [data-theme="royal"] {
+    color-scheme: dark;
     --bg-page: #121110;
     --bg-surface: #1c1a17;
     --bg-navbar: #181613;
@@ -247,6 +313,9 @@
     --digit-note: #a8997c;
 }
 
+@layer reset {
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -258,12 +327,16 @@ body {
     background-color: var(--bg-page);
     color: var(--text-primary);
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     user-select: none;
     -webkit-user-select: none;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
+}
+
+@layer components {
 
 /* ==========================================================================
    Barre de Navigation
@@ -298,12 +371,12 @@ body {
     height: 34px;
     background: var(--accent-primary);
     color: #fff;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
     padding: 2px;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     place-items: center;
 }
@@ -329,7 +402,7 @@ body {
     background: var(--accent-soft);
     color: var(--text-primary);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 8px 12px;
     font-size: 0.875rem;
     font-weight: 600;
@@ -340,15 +413,17 @@ body {
     transition: background 0.15s ease, transform 0.1s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .nav-icon-btn:hover {
     background: var(--board-border-cell);
+}
 }
 
 .theme-switcher {
     display: flex;
     background: var(--accent-soft);
     padding: 3px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     gap: 2px;
 }
 
@@ -356,7 +431,7 @@ body {
     border: none;
     background: transparent;
     padding: 5px 8px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 0.9rem;
     transition: background 0.15s ease;
@@ -408,14 +483,16 @@ body {
     font-size: 0.9rem;
     font-weight: 600;
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .diff-tab:hover {
     color: var(--accent-primary);
     background: var(--accent-soft);
+}
 }
 
 .diff-tab.active {
@@ -459,12 +536,14 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .pause-icon-btn:hover {
     background: var(--accent-primary);
     color: #fff;
+}
 }
 
 /* ==========================================================================
@@ -493,7 +572,7 @@ body {
     border: 2.5px solid var(--board-border-outer);
     background-color: var(--cell-bg);
     box-shadow: var(--shadow-md);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     overflow: hidden;
     outline: none;
 }
@@ -618,7 +697,7 @@ body {
     inset: 0;
     background: var(--bg-surface);
     border: 2.5px solid var(--board-border-outer);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -646,7 +725,7 @@ body {
     background: var(--bg-surface);
     border-left: 4px solid var(--accent-primary);
     box-shadow: var(--shadow-sm);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 12px 16px;
     display: flex;
     align-items: flex-start;
@@ -692,7 +771,7 @@ body {
     background-color: var(--accent-primary);
     color: #ffffff;
     border: none;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     font-size: 1.1rem;
     font-weight: 700;
     cursor: pointer;
@@ -700,8 +779,10 @@ body {
     transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .new-game-btn:hover {
     background-color: var(--accent-hover);
+}
 }
 
 .new-game-btn:active {
@@ -736,11 +817,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .action-btn:hover .action-icon-circle {
     background-color: var(--cell-selected);
+}
 }
 
 .action-btn.active .action-icon-circle {
@@ -761,7 +844,7 @@ body {
     font-size: 0.68rem;
     font-weight: 700;
     padding: 2px 6px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     border: 2px solid var(--bg-page);
 }
 
@@ -787,16 +870,18 @@ body {
     background: var(--accent-soft);
     color: var(--text-primary);
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 8px 10px;
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .quick-tool-btn:hover {
     border-color: var(--accent-primary);
+}
 }
 
 .quick-tool-btn.active {
@@ -816,17 +901,19 @@ body {
     height: 78px;
     background-color: var(--accent-soft);
     border: 2px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.12s ease;
+    transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .numpad-btn:hover {
     background-color: var(--cell-selected);
+}
 }
 
 .numpad-btn.locked-digit {
@@ -938,19 +1025,21 @@ body {
 .diff-modal-btn {
     background: var(--accent-soft);
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     padding: 12px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
     color: var(--text-primary);
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .diff-modal-btn:hover {
     border-color: var(--accent-primary);
     background: var(--cell-related);
+}
 }
 
 .diff-modal-btn span {
@@ -970,15 +1059,17 @@ body {
     background: var(--accent-primary);
     color: #fff;
     border: none;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     font-size: 0.98rem;
     font-weight: 700;
     cursor: pointer;
     transition: background 0.15s ease;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .primary-btn:hover {
     background: var(--accent-hover);
+}
 }
 
 .secondary-btn {
@@ -987,14 +1078,16 @@ body {
     background: var(--accent-soft);
     color: var(--text-primary);
     border: none;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
 }
 
+@media (hover: hover) and (pointer: fine) {
 .secondary-btn:hover {
     background: var(--board-border-cell);
+}
 }
 
 .modal-actions-stack {
@@ -1016,7 +1109,7 @@ body {
 .stat-box {
     background: var(--accent-soft);
     padding: 12px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -1047,7 +1140,7 @@ body {
     background: var(--accent-soft);
     border: none;
     padding: 7px 8px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-secondary);
@@ -1062,15 +1155,17 @@ body {
 /* ==========================================================================
    Bouton d'installation Navbar, Outils rapides & Modale Paramètres moderne
    ========================================================================== */
-.install-pill-btn {
-    background: var(--accent-primary) !important;
-    color: #ffffff !important;
-    border-radius: 999px;
+.nav-icon-btn.install-pill-btn {
+    background: var(--accent-primary);
+    color: #ffffff;
+    border-radius: var(--radius-full);
     padding: 7px 13px;
     box-shadow: 0 2px 8px rgba(0, 114, 227, 0.28);
 }
-.install-pill-btn:hover {
-    background: var(--accent-hover) !important;
+@media (hover: hover) and (pointer: fine) {
+.nav-icon-btn.install-pill-btn:hover {
+    background: var(--accent-hover);
+}
 }
 .install-btn-label {
     font-size: 0.82rem;
@@ -1083,15 +1178,17 @@ body {
     color: #ffffff;
     font-weight: 700;
 }
+@media (hover: hover) and (pointer: fine) {
 .new-game-inline-btn:hover {
     background: var(--accent-hover);
+}
 }
 
 .sheet-handle {
     display: none;
     width: 40px;
     height: 4px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background: var(--board-border-cell);
     margin: 0 auto 10px;
     flex-shrink: 0;
@@ -1155,7 +1252,7 @@ body {
     background: #ffffff;
     color: var(--accent-primary);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 8px 14px;
     font-size: 0.84rem;
     font-weight: 800;
@@ -1189,7 +1286,7 @@ body {
     font-size: 0.72rem;
     font-weight: 800;
     padding: 3px 9px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     border: 1px solid var(--board-border-cell);
 }
 
@@ -1204,7 +1301,7 @@ body {
 .settings-theme-choice {
     position: relative;
     padding: 8px 6px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-primary);
@@ -1286,7 +1383,7 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 .sound-pack-btn.active {
     border-color: var(--accent-primary);
@@ -1305,7 +1402,7 @@ body {
     font-size: 0.74rem;
     font-weight: 800;
     padding: 3px 9px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
 }
 .trophies-grid {
@@ -1321,7 +1418,7 @@ body {
     display: flex;
     align-items: center;
     gap: 9px;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 .trophy-card.unlocked {
     background: var(--bg-surface);
@@ -1393,7 +1490,7 @@ body {
     font-size: 0.72rem;
     font-weight: 800;
     padding: 4px 9px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
 }
 
 /* Toast de déblocage de Trophée / Niveau */
@@ -1406,7 +1503,7 @@ body {
     background: var(--bg-surface);
     color: var(--text-primary);
     border: 2px solid #eab308;
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     padding: 10px 16px;
     display: flex;
     align-items: center;
@@ -1477,7 +1574,7 @@ body {
     width: 46px;
     height: 26px;
     background: var(--board-border-cell);
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     position: relative;
     cursor: pointer;
     flex-shrink: 0;
@@ -1535,7 +1632,7 @@ body {
 
 .profile-hero-card {
     background: var(--accent-soft);
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     padding: 14px;
     display: flex;
     align-items: center;
@@ -1544,7 +1641,7 @@ body {
 .profile-avatar-big {
     width: 54px;
     height: 54px;
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     background: var(--bg-surface);
     display: flex;
     align-items: center;
@@ -1572,7 +1669,7 @@ body {
     font-size: 0.72rem;
     font-weight: 800;
     padding: 2px 8px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
 }
 .profile-rank-title {
     font-size: 0.94rem;
@@ -1582,13 +1679,13 @@ body {
     width: 100%;
     height: 7px;
     background: var(--board-border-cell);
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     overflow: hidden;
 }
 .profile-xp-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--accent-primary), #22c55e);
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     transition: width 0.35s ease;
 }
 .profile-hero-info small {
@@ -1650,7 +1747,7 @@ body {
 }
 .avatar-choice {
     aspect-ratio: 1 / 1;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 2px solid transparent;
     background: var(--bg-surface);
     font-size: 1.2rem;
@@ -1658,7 +1755,7 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 .avatar-choice.active {
     border-color: var(--accent-primary);
@@ -1687,7 +1784,7 @@ body {
     font-size: 0.74rem;
     font-weight: 800;
     padding: 4px 9px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     flex-shrink: 0;
 }
 
@@ -1703,7 +1800,7 @@ body {
 .cloud-code-box {
     background: var(--bg-surface);
     border: 1.5px dashed var(--accent-primary);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
@@ -1771,7 +1868,7 @@ body {
     font-size: 0.78rem;
     font-weight: 600;
     padding: 8px 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     line-height: 1.35;
 }
 .cloud-status-msg.ok {
@@ -1857,6 +1954,9 @@ body {
 }
 
 
+}
+
+@layer components {
 /* ==========================================================================
    ANIMATIONS & RETOURS VISUELS
    (désactivables via Paramètres > Animations, ou prefers-reduced-motion)
@@ -1941,7 +2041,7 @@ body {
     font-size: 0.68rem;
     font-weight: 700;
     padding: 2px 7px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background: linear-gradient(135deg, #f59e0b, #ef4444);
     color: #ffffff;
     text-shadow: none;
@@ -2039,6 +2139,9 @@ body {
 }
 
 
+}
+
+@layer components {
 /* ==========================================================================
    MOBILE & PWA
    ========================================================================== */
@@ -2050,6 +2153,7 @@ html {
 
 body {
     min-height: 100vh;
+    min-height: 100dvh;
     min-height: 100dvh;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -2093,7 +2197,7 @@ button,
     color: var(--text-primary);
     border: 1.5px solid var(--accent-primary);
     padding: 10px 12px;
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -2104,7 +2208,7 @@ button,
 .pwa-banner-icon {
     width: 38px;
     height: 38px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     flex-shrink: 0;
 }
 .pwa-banner-text {
@@ -2161,7 +2265,7 @@ button,
     background: var(--accent-primary);
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 8px 13px;
     font-weight: 700;
     font-size: 0.82rem;
@@ -2193,7 +2297,7 @@ button,
     .navbar-container { padding: 0 10px; }
     .navbar-actions { gap: 6px; }
     .brand { gap: 7px; }
-    .brand-logo { width: 28px; height: 28px; font-size: 8px; }
+    .brand-logo { width: 28px; height: 28px; font-size: 10px; }
     .brand-title { font-size: 1.08rem; }
     .nav-btn-label,
     .keyboard-shortcuts-hint { display: none; }
@@ -2247,7 +2351,7 @@ button,
         gap: 8px;
         background: var(--bg-surface);
         padding: 4px 10px;
-        border-radius: 8px;
+        border-radius: var(--radius-md);
         box-shadow: var(--shadow-sm);
     }
     .info-label { font-size: 0.72rem; }
@@ -2317,7 +2421,7 @@ button,
     .action-label { font-size: 0.68rem; }
     .status-badge { font-size: 0.58rem; padding: 1px 5px; top: -3px; right: -5px; }
 
-    .numpad-btn { height: 48px; border-radius: 8px; }
+    .numpad-btn { height: 48px; border-radius: var(--radius-md); }
     .num-digit { font-size: 1.32rem; line-height: 1.05; }
     .num-remaining { font-size: 0.6rem; }
     .quick-tool-btn { padding: 8px 6px; font-size: 0.75rem; white-space: nowrap; }
@@ -2369,7 +2473,7 @@ button,
     .navbar { height: calc(42px + env(safe-area-inset-top)); }
     .board-wrapper { width: min(100%, calc(100dvh - 270px)); }
     .action-icon-circle { width: 36px; height: 36px; }
-    .numpad-btn { height: 42px; }
+    .numpad-btn { height: 44px; }
     .num-digit { font-size: 1.2rem; }
     .quick-tool-btn { padding: 6px 6px; font-size: 0.72rem; }
 }
@@ -2412,7 +2516,7 @@ button,
     }
     .controls-panel { max-width: none; gap: 6px; margin: 0; flex: 1; }
     .numpad { grid-template-columns: repeat(3, 1fr); gap: 5px; }
-    .numpad-btn { height: 36px; }
+    .numpad-btn { height: 40px; }
     .num-digit { font-size: 1.15rem; }
     .num-remaining { display: none; }
     .action-icon-circle { width: 36px; height: 36px; }
@@ -2426,4 +2530,62 @@ button,
     #settings-install-card,
     #pwa-install-banner { display: none !important; }
     body { -webkit-user-select: none; user-select: none; }
+}
+
+}
+
+@layer utilities {
+/* ==========================================================================
+   Améliorations : accessibilité, robustesse et performance
+   ========================================================================== */
+
+/* Focus clavier visible (WCAG 2.4.7) */
+:focus-visible {
+    outline: 3px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+.sudoku-cell:focus-visible {
+    outline-offset: -3px;
+    z-index: 2;
+}
+button:focus:not(:focus-visible),
+.sudoku-cell:focus:not(:focus-visible) {
+    outline: none;
+}
+
+
+
+/* Les champs de saisie (pseudo, PIN) restent sélectionnables / copiables */
+input,
+textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Repli si backdrop-filter n'est pas supporté : fond plus opaque */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .modal-backdrop {
+        background: rgba(17, 24, 39, 0.8);
+    }
+}
+
+/* Isolation du rendu de la grille : limite les repaints pendant les animations */
+.sudoku-board {
+    contain: layout style;
+}
+.sudoku-cell.anim-pop,
+.sudoku-cell.anim-shake,
+.sudoku-cell.anim-enter {
+    will-change: transform;
+}
+
+/* Cibles tactiles minimales sur écrans tactiles */
+@media (pointer: coarse) {
+    .nav-icon-btn,
+    .pause-icon-btn,
+    .diff-tab {
+        min-height: 44px;
+    }
+}
+
 }
