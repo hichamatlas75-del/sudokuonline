@@ -21,6 +21,8 @@ const CORS_HEADERS = {
 
 // Intervalle minimum entre deux écritures de secours sur Cloudflare KV (10 minutes)
 const KV_CHECKPOINT_INTERVAL_MS = 10 * 60 * 1000;
+// Intervalle minimum entre deux écritures KV forcées par le client (checkpoint)
+const KV_MIN_FORCED_INTERVAL_MS = 2 * 60 * 1000;
 
 // Cache mémoire d'instance Worker (0 ms, 0 quota)
 const memoryStore = globalThis.__SUDOKU_LIVE_STORE || (globalThis.__SUDOKU_LIVE_STORE = new Map());
@@ -274,7 +276,11 @@ export async function onRequestPost(context) {
         const updatedAt = new Date(rev).toISOString();
         const lastKvWriteAt = (existing && existing.lastKvWriteAt) ? Number(existing.lastKvWriteAt) : 0;
 
-        const shouldPersistToKv = Boolean(body.checkpoint) || (now - lastKvWriteAt >= KV_CHECKPOINT_INTERVAL_MS);
+        // Un checkpoint forcé par le client est limité à 1 écriture KV / 2 min par profil (quota gratuit : 1000 écritures/jour)
+        const sinceLastKv = now - lastKvWriteAt;
+        const shouldPersistToKv = !existing
+            || sinceLastKv >= KV_CHECKPOINT_INTERVAL_MS
+            || (Boolean(body.checkpoint) && sinceLastKv >= KV_MIN_FORCED_INTERVAL_MS);
 
         const record = {
             pseudoSlug,
