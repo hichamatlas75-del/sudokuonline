@@ -310,6 +310,10 @@ class SudokuApp {
             if (confirm('Voulez-vous vraiment remettre toutes vos statistiques à zéro ?')) {
                 localStorage.removeItem(SudokuApp.STORAGE_KEY_STATS);
                 this.stats = this.loadStats();
+                this.profile.statsResetAt = Date.now();
+                this.saveProfile();
+                this.stateRev = Date.now();
+                this.pushLiveSyncNow();
                 this.renderStatsModal(this.difficulty);
             }
         });
@@ -439,9 +443,8 @@ class SudokuApp {
         this.syncPauseUI();
         this.hintBanner.classList.add('hidden');
 
-        // Enregistrer la partie commencée dans les statistiques
-        this.stats[this.difficulty].played += 1;
-        this.saveStats();
+        // La partie n'est comptée dans les statistiques qu'à la première saisie (voir placeNumberInCell)
+        this.playedCounted = false;
 
         // Sélectionner la première case vide par défaut
         outer: for (let r = 0; r < 9; r++) {
@@ -551,6 +554,15 @@ class SudokuApp {
         }
 
         this.pushHistory();
+
+        if (!this.playedCounted && !this.isNotesMode) {
+            this.playedCounted = true;
+            if (!this.stats[this.difficulty]) {
+                this.stats[this.difficulty] = { played: 0, won: 0, flawless: 0, bestTime: null, bestScore: 0 };
+            }
+            this.stats[this.difficulty].played += 1;
+            this.saveStats();
+        }
 
         if (this.isNotesMode) {
             // Si la case contient un chiffre (erroné ou non), on l'efface d'abord
@@ -1676,6 +1688,54 @@ class SudokuApp {
     }
 
     /**
+     * Vérifie qu'une grille 9x9 ne contient que des entiers 0..9
+     */
+    isValidGrid(grid) {
+        return Array.isArray(grid) && grid.length === 9 && grid.every(row =>
+            Array.isArray(row) && row.length === 9 && row.every(v => Number.isInteger(v) && v >= 0 && v <= 9));
+    }
+
+    /**
+     * Valide une partie sauvegardée/distante (formes et cohérence board/solution/initialBoard)
+     */
+    validateGame(g) {
+        if (!g || typeof g !== 'object') return false;
+        if (!this.isValidGrid(g.board) || !this.isValidGrid(g.solution) || !this.isValidGrid(g.initialBoard)) return false;
+        if (g.solution.some(row => row.some(v => v === 0))) return false;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (g.initialBoard[r][c] !== 0 && g.initialBoard[r][c] !== g.solution[r][c]) return false;
+                if (g.initialBoard[r][c] !== 0 && g.board[r][c] !== g.initialBoard[r][c]) return false;
+            }
+        }
+        if (g.notes !== undefined && !(Array.isArray(g.notes) && g.notes.length === 9 &&
+            g.notes.every(row => Array.isArray(row) && row.length === 9 && row.every(Array.isArray)))) return false;
+        return true;
+    }
+
+    /**
+     * Fusionne deux jeux de statistiques sans perdre de progression
+     */
+    mergeStats(local, remote) {
+        const out = {};
+        const keys = new Set([...Object.keys(local || {}), ...Object.keys(remote || {})]);
+        const num = v => (Number.isFinite(v) ? v : 0);
+        keys.forEach(k => {
+            const a = (local && local[k]) || {};
+            const b = (remote && remote[k]) || {};
+            const times = [a.bestTime, b.bestTime].filter(t => Number.isFinite(t));
+            out[k] = {
+                played: Math.max(num(a.played), num(b.played)),
+                won: Math.max(num(a.won), num(b.won)),
+                flawless: Math.max(num(a.flawless), num(b.flawless)),
+                bestTime: times.length ? Math.min(...times) : null,
+                bestScore: Math.max(num(a.bestScore), num(b.bestScore))
+            };
+        });
+        return out;
+    }
+
+    /**
      * Persistance localStorage (Partie en cours, Paramètres, Statistiques)
      */
     saveGameState(pushRemote = true) {
@@ -1699,6 +1759,7 @@ class SudokuApp {
             isAutoNotesOn: this.isAutoNotesOn,
             isFastMode: this.isFastMode,
             lockedDigit: this.lockedDigit,
+            playedCounted: this.playedCounted !== false,
             completedUnits: [...this.completedUnits],
             scoredCells: [...this.scoredCells]
         };
@@ -1716,7 +1777,7 @@ class SudokuApp {
             const raw = localStorage.getItem(SudokuApp.STORAGE_KEY_GAME);
             if (!raw) return false;
             const data = JSON.parse(raw);
-            if (!data || !data.board || !data.solution) return false;
+            if (!data || !this.validateGame(data)) return false;
 
             this.difficulty = data.difficulty || 'easy';
             this.multiplier = data.multiplier || 1;
@@ -1734,6 +1795,7 @@ class SudokuApp {
             this.isAutoNotesOn = !!data.isAutoNotesOn;
             this.isFastMode = !!data.isFastMode;
             this.lockedDigit = data.lockedDigit ?? null;
+            this.playedCounted = data.playedCounted !== false;
             this.completedUnits = new Set(Array.isArray(data.completedUnits) ? data.completedUnits : []);
             this.rebuildScoredCellsFromBoard(data.scoredCells);
 
@@ -1890,8 +1952,8 @@ class SudokuApp {
 
     loadProfile() {
         const defaults = {
-            name: 'hicham',
-            pin: '1234',
+            name: '',
+            pin: '',
             avatar: '🧠',
             xp: 0,
             rewardScore: 0,
@@ -1903,8 +1965,8 @@ class SudokuApp {
         try {
             const saved = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_PROFILE)) || {};
             const merged = { ...defaults, ...saved };
-            if (!merged.name || merged.name === 'Joueur') merged.name = 'hicham';
-            if (!/^[0-9]{4}$/.test(merged.pin || '')) merged.pin = '1234';
+            if (typeof merged.name !== 'string' || merged.name === 'Joueur') merged.name = '';
+            if (!/^[0-9]{4}$/.test(merged.pin || '')) merged.pin = '';
             if (!Array.isArray(merged.trophies)) merged.trophies = [];
             if (typeof merged.rewardScore !== 'number' || merged.rewardScore < 0) merged.rewardScore = 0;
             if (!merged.dailyStreak || typeof merged.dailyStreak !== 'object') {
@@ -2073,10 +2135,10 @@ class SudokuApp {
             xpSub.textContent = `${rank.xp.toLocaleString('fr-FR')}${nextTxt} • ${rank.totalWon} victoire${rank.totalWon > 1 ? 's' : ''}`;
         }
         if (nameInput && document.activeElement !== nameInput) {
-            nameInput.value = this.profile.name || 'hicham';
+            nameInput.value = this.profile.name || '';
         }
         if (pinInput && document.activeElement !== pinInput) {
-            pinInput.value = this.profile.pin || '1234';
+            pinInput.value = this.profile.pin || '';
         }
 
         // Rendu de la Galerie de Trophées
@@ -2267,10 +2329,10 @@ class SudokuApp {
                 }
             }
             const idleMs = Date.now() - this.lastActivityAt;
-            const nextDelay = idleMs < 60000 ? 1400 : (idleMs < 180000 ? 4500 : 8000);
+            const nextDelay = idleMs < 60000 ? 3000 : (idleMs < 180000 ? 6000 : 10000);
             this._livePollTimer = setTimeout(runAdaptiveLoop, nextDelay);
         };
-        this._livePollTimer = setTimeout(runAdaptiveLoop, 1400);
+        this._livePollTimer = setTimeout(runAdaptiveLoop, 3000);
 
         // Sauvegarde KV de sécurité uniquement quand on quitte l'application, et réveil au retour
         document.addEventListener('visibilitychange', () => {
@@ -2440,12 +2502,22 @@ class SudokuApp {
             this.syncUnlockablesUI();
 
             if (bundle.stats && typeof bundle.stats === 'object') {
-                this.stats = { ...this.loadStats(), ...bundle.stats };
+                const remoteReset = Number(bundle.profile && bundle.profile.statsResetAt) || 0;
+                const localReset = Number(this.profile.statsResetAt) || 0;
+                if (remoteReset > localReset) {
+                    // Remise à zéro effectuée ailleurs : on l'adopte telle quelle
+                    this.profile.statsResetAt = remoteReset;
+                    this.saveProfile();
+                    localStorage.removeItem(SudokuApp.STORAGE_KEY_STATS);
+                    this.stats = this.mergeStats(this.loadStats(), bundle.stats);
+                } else if (remoteReset === localReset) {
+                    this.stats = this.mergeStats(this.loadStats(), bundle.stats);
+                }
                 this.saveStats();
             }
 
-            const g = bundle.currentGame;
-            if (g && Array.isArray(g.board) && Array.isArray(g.solution)) {
+            const g = this.validateGame(bundle.currentGame) ? bundle.currentGame : null;
+            if (g) {
                 // Identifier la case qui vient d'être modifiée sur l'autre appareil pour l'animer en direct
                 let changedCell = null;
                 const samePuzzle = Array.isArray(this.solution) &&
@@ -2474,6 +2546,7 @@ class SudokuApp {
                 this.streak = g.streak || 0;
                 this.hintsRemaining = g.hintsRemaining ?? 3;
                 this.isAutoNotesOn = !!g.isAutoNotesOn;
+                this.playedCounted = g.playedCounted !== false;
                 this.elapsedSeconds = samePuzzle
                     ? Math.max(this.elapsedSeconds || 0, g.elapsedSeconds || 0)
                     : (g.elapsedSeconds || 0);
@@ -2543,6 +2616,11 @@ class SudokuApp {
             savedGame = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_GAME));
         } catch (_) {}
 
+        // L'historique d'annulation est local à l'appareil : inutile (et lourd) à synchroniser
+        if (savedGame && typeof savedGame === 'object') {
+            savedGame = { ...savedGame, history: [] };
+        }
+
         return {
             app: 'sudoku-online-v1',
             updatedAt: new Date().toISOString(),
@@ -2552,7 +2630,8 @@ class SudokuApp {
                 xp: this.profile.xp || 0,
                 rewardScore: this.profile.rewardScore || 0,
                 trophies: this.profile.trophies || [],
-                dailyStreak: this.profile.dailyStreak || { count: 0, lastPlayedDate: null, bestStreak: 0 }
+                dailyStreak: this.profile.dailyStreak || { count: 0, lastPlayedDate: null, bestStreak: 0 },
+                statsResetAt: this.profile.statsResetAt || 0
             },
             stats: this.stats,
             settings: this.settings,
@@ -2561,12 +2640,17 @@ class SudokuApp {
     }
 
     applyFullBackupBundle(bundle) {
-        if (!bundle || typeof bundle !== 'object') {
+        if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) {
             throw new Error('Format de sauvegarde invalide.');
         }
+        if (bundle.currentGame != null && !this.validateGame(bundle.currentGame)) {
+            throw new Error('Partie en cours invalide.');
+        }
+        if (!confirm('Importer ce fichier remplacera votre partie en cours. Continuer ?')) return false;
         this.applyRemoteLiveState(bundle, Date.now());
         this.stateRev = Date.now();
         this.pushLiveSyncNow();
+        return true;
     }
 
     showCloudStatus(text, type = 'ok') {
@@ -2597,8 +2681,9 @@ class SudokuApp {
         reader.onload = () => {
             try {
                 const bundle = JSON.parse(String(reader.result));
-                this.applyFullBackupBundle(bundle);
-                this.showCloudStatus(`✓ Fichier importé ! Profil « ${this.profile.name} » restauré.`, 'ok');
+                if (this.applyFullBackupBundle(bundle)) {
+                    this.showCloudStatus(`✓ Fichier importé ! Profil « ${this.profile.name} » restauré.`, 'ok');
+                }
             } catch (_) {
                 this.audio.playError();
                 this.showCloudStatus('Fichier .json invalide ou corrompu.', 'err');

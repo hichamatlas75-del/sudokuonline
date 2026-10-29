@@ -160,9 +160,11 @@ class SudokuEngine {
 
         let removed = 0;
         const targetRemove = diff.cluesToRemove;
+        // Budget de temps : évite de geler l'interface sur les niveaux difficiles
+        const deadline = Date.now() + 1500;
 
         for (const [r, c] of shuffledPositions) {
-            if (removed >= targetRemove) break;
+            if (removed >= targetRemove || Date.now() > deadline) break;
             if (puzzle[r][c] === 0) continue;
 
             const backup = puzzle[r][c];
@@ -336,4 +338,5 @@ class SudokuEngine {
     }
 }
 
-window.SudokuEngine = SudokuEngine;
+if (typeof window !== 'undefined') window.SudokuEngine = SudokuEngine;
+if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngine;

@@ -13,7 +13,8 @@
 const CORS_HEADERS = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store, no-cache, must-revalidate',
-    'Access-Control-Allow-Origin': '*',
+    'X-Content-Type-Options': 'nosniff',
+    // Pas d'en-tête Access-Control-Allow-Origin : l'API n'est utilisable que depuis le même domaine
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
 };
@@ -23,6 +24,13 @@ const KV_CHECKPOINT_INTERVAL_MS = 10 * 60 * 1000;
 
 // Cache mémoire d'instance Worker (0 ms, 0 quota)
 const memoryStore = globalThis.__SUDOKU_LIVE_STORE || (globalThis.__SUDOKU_LIVE_STORE = new Map());
+
+// Limites de sécurité
+const MAX_BODY_BYTES = 64 * 1024;                 // taille max d'une requête
+const MAX_PIN_ATTEMPTS = 5;                       // essais de PIN erronés par fenêtre
+const PIN_LOCK_WINDOW_MS = 15 * 60 * 1000;        // fenêtre de blocage (15 min, best-effort par instance)
+const KV_TTL_SECONDS = 180 * 24 * 60 * 60;        // expiration des profils inactifs (180 jours)
+const failedPins = globalThis.__SUDOKU_FAILED_PINS || (globalThis.__SUDOKU_FAILED_PINS = new Map());
 
 function jsonResponse(data, status = 200) {
     return new Response(JSON.stringify(data), {
@@ -129,16 +137,32 @@ export async function onRequestOptions() {
 export async function onRequestPost(context) {
     const { request, env } = context;
 
+    // Limite de taille du corps de la requête (protège RAM, cache Edge et KV)
+    const declaredLen = Number(request.headers.get('Content-Length') || 0);
+    if (declaredLen > MAX_BODY_BYTES) {
+        return jsonResponse({ ok: false, error: 'Données trop volumineuses.' }, 413);
+    }
+
     let body;
     try {
-        body = await request.json();
+        const text = await request.text();
+        if (text.length > MAX_BODY_BYTES) {
+            return jsonResponse({ ok: false, error: 'Données trop volumineuses.' }, 413);
+        }
+        body = JSON.parse(text);
     } catch (_) {
+        return jsonResponse({ ok: false, error: 'Corps JSON invalide.' }, 400);
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
         return jsonResponse({ ok: false, error: 'Corps JSON invalide.' }, 400);
     }
 
     const action = body.action || 'save'; // 'save' | 'load' | 'poll'
-    const pseudoSlug = normalizePseudo(body.pseudo || 'hicham');
-    const pin = String(body.pin || '1234').trim();
+    if (!['save', 'load', 'poll'].includes(action)) {
+        return jsonResponse({ ok: false, error: 'Action inconnue.' }, 400);
+    }
+    const pseudoSlug = normalizePseudo(body.pseudo);
+    const pin = String(body.pin || '').trim();
 
     if (!pseudoSlug || pseudoSlug.length < 2) {
         return jsonResponse({
@@ -162,14 +186,32 @@ export async function onRequestPost(context) {
         const allowKvFallback = Boolean(body.coldStart) || action === 'load' || action === 'save';
         const existing = await getPlayerRecord(kvKey, env, allowKvFallback);
 
-        // Vérification du code PIN si le profil existe déjà
-        if (existing && existing.pinHash && existing.pinHash !== pinHash) {
+        const lockEntry = failedPins.get(kvKey);
+        if (lockEntry && Date.now() - lockEntry.since <= PIN_LOCK_WINDOW_MS && lockEntry.count > MAX_PIN_ATTEMPTS) {
             return jsonResponse({
                 ok: false,
-                code: 'WRONG_PIN',
-                error: 'Code PIN incorrect pour ce pseudo.'
-            }, 403);
+                code: 'TOO_MANY_ATTEMPTS',
+                error: 'Trop de tentatives. Réessayez plus tard.'
+            }, 429);
         }
+
+        // Vérification du code PIN si le profil existe déjà (avec limitation des tentatives)
+        if (existing && existing.pinHash && existing.pinHash !== pinHash) {
+            const nowMs = Date.now();
+            let entry = failedPins.get(kvKey);
+            if (!entry || nowMs - entry.since > PIN_LOCK_WINDOW_MS) entry = { count: 0, since: nowMs };
+            entry.count += 1;
+            failedPins.set(kvKey, entry);
+            const locked = entry.count > MAX_PIN_ATTEMPTS;
+            return jsonResponse({
+                ok: false,
+                code: locked ? 'TOO_MANY_ATTEMPTS' : 'WRONG_PIN',
+                error: locked
+                    ? 'Trop de tentatives. Réessayez plus tard.'
+                    : 'Code PIN incorrect pour ce pseudo.'
+            }, locked ? 429 : 403);
+        }
+        if (existing && existing.pinHash) failedPins.delete(kvKey);
 
         // Action 'poll' : 100% RAM / Edge Cache (0 lecture KV !)
         if (action === 'poll') {
@@ -226,7 +268,8 @@ export async function onRequestPost(context) {
 
         const now = Date.now();
         const prevRev = existing && existing.rev ? Number(existing.rev) : 0;
-        const incomingRev = Number(body.rev) || now;
+        // Anti-décalage d'horloge : une révision client ne peut pas dépasser l'heure serveur de plus d'1 min
+        const incomingRev = Math.min(Number(body.rev) || now, now + 60000);
         const rev = Math.max(now, prevRev + 1, incomingRev);
         const updatedAt = new Date(rev).toISOString();
         const lastKvWriteAt = (existing && existing.lastKvWriteAt) ? Number(existing.lastKvWriteAt) : 0;
@@ -249,7 +292,7 @@ export async function onRequestPost(context) {
 
         // 2. Sauvegarde permanente sur KV uniquement lors d'un checkpoint ou toutes les 10 minutes
         if (shouldPersistToKv && env && env.SUDOKU_KV) {
-            await env.SUDOKU_KV.put(kvKey, JSON.stringify(record));
+            await env.SUDOKU_KV.put(kvKey, JSON.stringify(record), { expirationTtl: KV_TTL_SECONDS });
         }
 
         return jsonResponse({
