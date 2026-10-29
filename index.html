@@ -292,15 +292,15 @@
         </div>
     </div>
 
-    <!-- MODAL : Partie terminée (3 Erreurs) -->
+    <!-- MODAL : Partie terminée (3 Erreurs = Game Over strict) -->
     <div id="modal-game-over" class="modal-backdrop hidden" role="dialog" aria-modal="true">
         <div class="modal-card center-text">
-            <div class="modal-icon error-icon">⚠️</div>
-            <h2>Partie terminée</h2>
-            <p class="modal-subtitle">Vous avez commis 3 erreurs dans cette partie.</p>
+            <div class="modal-icon error-icon">💀</div>
+            <h2>Game Over</h2>
+            <p class="modal-subtitle">Vous avez atteint la limite stricte de <strong>3 erreurs (3/3)</strong>. La partie est terminée.</p>
             <div class="modal-actions-stack">
-                <button id="btn-second-chance" class="primary-btn">Seconde chance (Continuer)</button>
-                <button id="btn-gameover-new" class="secondary-btn">Nouvelle partie</button>
+                <button id="btn-gameover-new" class="primary-btn">Nouvelle partie</button>
+                <button id="btn-gameover-restart" class="secondary-btn">Recommencer cette grille à zéro</button>
             </div>
         </div>
     </div>
@@ -613,18 +613,18 @@
                     <div class="settings-group-card">
                         <label class="setting-row">
                             <div class="setting-text">
-                                <strong>Limite d'erreurs (3 max)</strong>
-                                <small>Fin de partie au bout de 3 erreurs</small>
+                                <strong>Limite stricte : 3 erreurs max</strong>
+                                <small>Règle obligatoire : 3 erreurs = Game Over immédiat</small>
                             </div>
-                            <input type="checkbox" class="toggle-switch" id="set-mistake-limit" checked>
+                            <input type="checkbox" class="toggle-switch" id="set-mistake-limit" checked disabled>
                         </label>
 
                         <label class="setting-row">
                             <div class="setting-text">
-                                <strong>Vérification auto des erreurs</strong>
-                                <small>Signale immédiatement les chiffres erronés</small>
+                                <strong>Vérification immédiate des erreurs</strong>
+                                <small>Chaque chiffre erroné compte immédiatement comme 1 faute</small>
                             </div>
-                            <input type="checkbox" class="toggle-switch" id="set-auto-check" checked>
+                            <input type="checkbox" class="toggle-switch" id="set-auto-check" checked disabled>
                         </label>
 
                         <label class="setting-row">

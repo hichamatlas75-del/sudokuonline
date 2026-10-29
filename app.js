@@ -268,15 +268,13 @@ class SudokuApp {
             this.restartCurrentGame();
         });
 
-        document.getElementById('btn-second-chance').addEventListener('click', () => {
-            this.closeModal('modal-game-over');
-            this.audio.playSecondChance();
-            this.mistakes = Math.max(0, this.maxMistakes - 1);
-            this.isGameOver = false;
-            this.startTimer();
-            this.render();
-            this.saveGameState();
-        });
+        const btnGameOverRestart = document.getElementById('btn-gameover-restart');
+        if (btnGameOverRestart) {
+            btnGameOverRestart.addEventListener('click', () => {
+                this.closeModal('modal-game-over');
+                this.restartCurrentGame();
+            });
+        }
 
         document.getElementById('btn-gameover-new').addEventListener('click', () => {
             this.closeModal('modal-game-over');
@@ -342,9 +340,10 @@ class SudokuApp {
             });
         });
 
-        // Écouteurs des paramètres
+        // Écouteurs des paramètres (mistakeLimit et autoCheckErrors sont toujours verrouillés à true)
         const bindSetting = (id, key) => {
             const el = document.getElementById(id);
+            if (!el) return;
             el.addEventListener('change', () => {
                 this.settings[key] = el.checked;
                 this.saveSettings();
@@ -352,8 +351,6 @@ class SudokuApp {
                 this.render();
             });
         };
-        bindSetting('set-mistake-limit', 'mistakeLimit');
-        bindSetting('set-auto-check', 'autoCheckErrors');
         bindSetting('set-highlight-duplicates', 'highlightDuplicates');
         bindSetting('set-highlight-identical', 'highlightIdentical');
         bindSetting('set-auto-remove-notes', 'autoRemoveNotes');
@@ -627,28 +624,23 @@ class SudokuApp {
             }
         } else {
             this.streak = 0;
-            // Erreur détectée
-            if (this.settings.autoCheckErrors || this.hasConflict(row, col, num)) {
-                this.mistakes += 1;
-                errorCounted = true;
-                this.audio.playError();
-                this.haptic([30, 40, 30]);
-                this.animateCell(row, col, 'shake');
-                this.bump(this.mistakesContainer, 'pulse-error');
-                this.bump(this.boardEl, 'board-error');
-                if (this.settings.mistakeLimit && this.mistakes >= this.maxMistakes) {
-                    this.isGameOver = true;
-                    this.stopTimer();
-                    this.audio.playGameOver();
-                    this.haptic(200);
-                    this.render();
-                    this.saveGameState();
-                    this.openModal('modal-game-over');
-                    return;
-                }
-            } else {
-                // Chiffre faux mais non signalé (vérification auto désactivée) : retour neutre
-                this.audio.playPlace(num, 1);
+            // Règle stricte : toute saisie erronée compte immédiatement comme 1 faute (3 fautes = Game Over)
+            this.mistakes += 1;
+            errorCounted = true;
+            this.audio.playError();
+            this.haptic([30, 40, 30]);
+            this.animateCell(row, col, 'shake');
+            this.bump(this.mistakesContainer, 'pulse-error');
+            this.bump(this.boardEl, 'board-error');
+            if (this.mistakes >= this.maxMistakes) {
+                this.isGameOver = true;
+                this.stopTimer();
+                this.audio.playGameOver();
+                this.haptic(200);
+                this.render();
+                this.saveGameState();
+                this.openModal('modal-game-over');
+                return;
             }
         }
 
@@ -1165,12 +1157,8 @@ class SudokuApp {
             tab.classList.toggle('active', tab.dataset.difficulty === this.difficulty);
         });
 
-        // Barre d'infos (Erreurs, Score, Temps)
-        if (this.settings.mistakeLimit) {
-            this.mistakesDisplay.textContent = `${this.mistakes}/${this.maxMistakes}`;
-        } else {
-            this.mistakesDisplay.textContent = `${this.mistakes}`;
-        }
+        // Barre d'infos (Erreurs max 3, Score, Temps)
+        this.mistakesDisplay.textContent = `${this.mistakes}/${this.maxMistakes}`;
         this.scoreDisplay.textContent = this.score.toLocaleString('fr-FR');
         this.timerDisplay.textContent = this.formatTime(this.elapsedSeconds);
 
@@ -1691,7 +1679,7 @@ class SudokuApp {
      * Persistance localStorage (Partie en cours, Paramètres, Statistiques)
      */
     saveGameState(pushRemote = true) {
-        if (this.isWon || this.isGameOver) return;
+        if (this.isWon) return;
         const payload = {
             difficulty: this.difficulty,
             multiplier: this.multiplier,
@@ -1701,6 +1689,7 @@ class SudokuApp {
             notes: this.notes,
             history: this.history,
             mistakes: this.mistakes,
+            isGameOver: !!this.isGameOver,
             score: this.score,
             streak: this.streak,
             hintsRemaining: this.hintsRemaining,
@@ -1762,6 +1751,13 @@ class SudokuApp {
             }
 
             this.updateCompletedUnitsSnapshot(false);
+            if (data.isGameOver || this.mistakes >= this.maxMistakes) {
+                this.isGameOver = true;
+                this.stopTimer();
+                this.render();
+                this.openModal('modal-game-over');
+                return true;
+            }
             this.startTimer();
             this.render();
             return true;
@@ -1788,7 +1784,7 @@ class SudokuApp {
         };
         try {
             const saved = JSON.parse(localStorage.getItem(SudokuApp.STORAGE_KEY_SETTINGS));
-            return { ...defaults, ...saved };
+            return { ...defaults, ...saved, mistakeLimit: true, autoCheckErrors: true };
         } catch (_) {
             return defaults;
         }
@@ -2484,7 +2480,15 @@ class SudokuApp {
                 this.completedUnits = new Set(Array.isArray(g.completedUnits) ? g.completedUnits : []);
                 this.rebuildScoredCellsFromBoard(g.scoredCells);
 
-                if (!samePuzzle || this.isGameOver || this.isWon) {
+                if (g.isGameOver || this.mistakes >= this.maxMistakes) {
+                    this.isGameOver = true;
+                    this.isWon = false;
+                    this.isPaused = false;
+                    this.syncPauseUI();
+                    this.stopTimer();
+                    this.closeModal('modal-victory');
+                    this.openModal('modal-game-over');
+                } else if (!samePuzzle || this.isGameOver || this.isWon) {
                     this.isGameOver = false;
                     this.isWon = false;
                     this.isPaused = false;
